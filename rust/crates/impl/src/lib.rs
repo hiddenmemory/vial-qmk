@@ -40,11 +40,15 @@ fn init(display: &mut Display, state: &mut State) {
 fn render(display: &mut Display, state: &mut State) {
     match Keyboard::role() {
         Role::Primary => {
-            if let Some(ref image) = state.green_slime {
+            if !state.primary_slime_drawn
+                && let Some(ref image) = state.green_slime
+            {
                 image.draw(
                     display.position(image, utils::Alignment::Center, utils::Alignment::Trailing),
                     display,
                 );
+
+                state.primary_slime_drawn = true;
             }
 
             render_left(display, state);
@@ -55,11 +59,15 @@ fn render(display: &mut Display, state: &mut State) {
                 Slime::Orange => &state.orange_slime,
             };
 
-            if let Some(image) = slime {
+            if !state.secondary_slime_drawn
+                && let Some(image) = slime
+            {
                 image.draw(
                     display.position(image, utils::Alignment::Center, utils::Alignment::Trailing),
                     display,
                 );
+
+                state.secondary_slime_drawn = true;
             }
         }
     }
@@ -92,7 +100,7 @@ fn render_left(display: &mut Display, state: &mut State) {
 fn register_secondary_sync_handlers() {
     unsafe {
         qmk_sys::transaction_register_rpc(
-            qmk_sys::serial_transaction_id::RUST_SYNC_A as i8,
+            qmk_sys::serial_transaction_id::USER_CHANNEL_0 as i8,
             Some(secondary_sync_handler_for_rust_sync_a),
         );
     }
@@ -133,7 +141,9 @@ extern "C" fn secondary_sync_handler_for_rust_sync_a(
 ) {
     Keyboard::secondary_recv(in_len, in_data, out_len, out_data, |request: Request| {
         let success = if let Some(slime) = request.secondary_change_slime {
-            state::get().secondary_slime = slime;
+            let state = state::get();
+            state.secondary_slime_drawn = false;
+            state.secondary_slime = slime;
             true
         } else {
             false
@@ -193,7 +203,7 @@ pub extern "C" fn housekeeping_task_user_rs() {
 
     state.last_sync = Timer::read();
 
-    let transaction_id = qmk_sys::serial_transaction_id::RUST_SYNC_A;
+    let transaction_id = qmk_sys::serial_transaction_id::USER_CHANNEL_0;
 
     debug_log(&format!("housekeeping {}", state.last_sync));
 

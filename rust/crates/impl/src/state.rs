@@ -9,6 +9,8 @@ pub struct State {
     pub last_sync: u32,
     pub green_slime: Option<Image>,
     pub orange_slime: Option<Image>,
+    pub primary_slime_drawn: bool,
+    pub secondary_slime_drawn: bool,
     pub secondary_slime: Slime,
 }
 
@@ -22,6 +24,8 @@ impl State {
             last_sync: 0,
             green_slime: None,
             orange_slime: None,
+            primary_slime_drawn: false,
+            secondary_slime_drawn: false,
             secondary_slime: Slime::Orange,
         }
     }
