@@ -98,12 +98,18 @@ fn render_left(display: &mut Display, state: &mut State) {
 }
 
 fn register_secondary_sync_handlers() {
-    unsafe {
-        qmk_sys::transaction_register_rpc(
-            qmk_sys::serial_transaction_id::USER_CHANNEL_0 as i8,
-            Some(secondary_sync_handler_for_rust_sync_a),
-        );
-    }
+    Keyboard::listen(keyboard::Channel::A, |request: Request| {
+        let success = if let Some(slime) = request.secondary_change_slime {
+            let state = state::get();
+            state.secondary_slime_drawn = false;
+            state.secondary_slime = slime;
+            true
+        } else {
+            false
+        };
+
+        Response { success }
+    });
 }
 
 #[derive(Default, Eq, PartialEq, Copy, Clone, Debug, Serialize, Deserialize)]
@@ -132,27 +138,6 @@ struct Response {
     success: bool,
 }
 
-#[unsafe(no_mangle)]
-extern "C" fn secondary_sync_handler_for_rust_sync_a(
-    in_len: u8,
-    in_data: *const core::ffi::c_void,
-    out_len: u8,
-    out_data: *mut core::ffi::c_void,
-) {
-    Keyboard::secondary_recv(in_len, in_data, out_len, out_data, |request: Request| {
-        let success = if let Some(slime) = request.secondary_change_slime {
-            let state = state::get();
-            state.secondary_slime_drawn = false;
-            state.secondary_slime = slime;
-            true
-        } else {
-            false
-        };
-
-        Response { success }
-    });
-}
-
 fn run_loop() {
     state::get().deferred_token =
         unsafe { qmk_sys::defer_exec(1000, Some(update), core::ptr::null_mut()) };
@@ -173,9 +158,9 @@ pub extern "C" fn keyboard_post_init_kb_rs() {
     debug_log("setting display brightness");
     Display::set_brightness(Display::max_brightness() / 2);
 
-    if Keyboard::is_secondary() {
-        register_secondary_sync_handlers();
-    }
+    // if Keyboard::is_secondary() {
+    register_secondary_sync_handlers();
+    // }
 
     debug_log("beginning run loop");
     run_loop();
@@ -203,14 +188,12 @@ pub extern "C" fn housekeeping_task_user_rs() {
 
     state.last_sync = Timer::read();
 
-    let transaction_id = qmk_sys::serial_transaction_id::USER_CHANNEL_0;
-
     debug_log(&format!("housekeeping {}", state.last_sync));
 
     state.secondary_slime = state.secondary_slime.other();
 
-    let result: Result<Response, _> = Keyboard::seondary_send(
-        transaction_id,
+    let result: Result<Response, _> = Keyboard::secondary_send(
+        keyboard::Channel::A,
         Request {
             secondary_change_slime: Some(state.secondary_slime),
         },

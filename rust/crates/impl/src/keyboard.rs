@@ -1,3 +1,4 @@
+use alloc::{boxed::Box, rc::Rc, vec, vec::Vec};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
@@ -46,8 +47,8 @@ impl Keyboard {
         !Self::is_primary()
     }
 
-    pub fn seondary_send<Request: Serialize, Response: Default + Serialize + DeserializeOwned>(
-        transaction_id: u32,
+    pub fn secondary_send<Request: Serialize, Response: Default + Serialize + DeserializeOwned>(
+        channel: Channel,
         request: Request,
     ) -> Result<Response> {
         let request_buffer =
@@ -59,7 +60,7 @@ impl Keyboard {
 
         let result = unsafe {
             qmk_sys::transaction_rpc_exec(
-                transaction_id as i8,
+                channel.to_qmk_id(),
                 request_buffer.len() as u8,
                 request_buffer.as_ptr() as *const core::ffi::c_void,
                 response_buffer.len() as u8,
@@ -71,7 +72,7 @@ impl Keyboard {
             Ok(postcard::from_bytes::<Response>(&response_buffer)
                 .context("unable to parse response")?)
         } else {
-            Err(anyhow::anyhow!("unable to communicate with seconday"))
+            Err(anyhow::anyhow!("unable to communicate with secondary"))
         }
     }
 
@@ -85,9 +86,9 @@ impl Keyboard {
         in_data: *const core::ffi::c_void,
         out_len: u8,
         out_data: *mut core::ffi::c_void,
-        mut f: F,
+        f: F,
     ) where
-        F: FnMut(Request) -> Response,
+        F: Fn(Request) -> Response,
     {
         let in_data_ptr = in_data as *const u8;
         let incoming_slice = unsafe { alloc::slice::from_raw_parts(in_data_ptr, in_len as usize) };
@@ -102,4 +103,114 @@ impl Keyboard {
         let outgoing = unsafe { alloc::slice::from_raw_parts_mut(out_data_ptr, out_len as usize) };
         let _ = postcard::to_slice(&response, outgoing);
     }
+
+    pub fn listen<
+        'a,
+        Request: Deserialize<'a> + 'static,
+        Response: Default + Serialize + DeserializeOwned + 'static,
+        F,
+    >(
+        channel: Channel,
+        f: F,
+    ) where
+        F: Fn(Request) -> Response + 'static,
+    {
+        let inner_f = Rc::new(Box::new(f));
+
+        let outer_f: Bridge = Box::new(
+            move |in_len: u8,
+                  in_data: *const core::ffi::c_void,
+                  out_len: u8,
+                  out_data: *mut core::ffi::c_void| {
+                Keyboard::secondary_recv(in_len, in_data, out_len, out_data, inner_f.as_ref());
+            },
+        );
+
+        let bridges = bridges();
+        bridges[channel.index()].replace(outer_f);
+
+        unsafe {
+            qmk_sys::transaction_register_rpc(
+                channel.to_qmk_id(),
+                Some(match channel {
+                    Channel::A => bridge_a,
+                    Channel::B => bridge_b,
+                    Channel::C => bridge_c,
+                    Channel::D => bridge_d,
+                }),
+            );
+        }
+    }
 }
+
+#[derive(Copy, Clone, Hash, Eq, PartialEq)]
+pub enum Channel {
+    A,
+    B,
+    C,
+    D,
+}
+
+impl Channel {
+    fn index(&self) -> usize {
+        match self {
+            Channel::A => 0,
+            Channel::B => 1,
+            Channel::C => 2,
+            Channel::D => 3,
+        }
+    }
+
+    fn to_qmk_id(self) -> i8 {
+        match self {
+            Channel::A => qmk_sys::serial_transaction_id::USER_CHANNEL_0 as i8,
+            Channel::B => qmk_sys::serial_transaction_id::USER_CHANNEL_1 as i8,
+            Channel::C => qmk_sys::serial_transaction_id::USER_CHANNEL_2 as i8,
+            Channel::D => qmk_sys::serial_transaction_id::USER_CHANNEL_3 as i8,
+        }
+    }
+}
+
+type Bridge = Box<dyn Fn(u8, *const core::ffi::c_void, u8, *mut core::ffi::c_void)>;
+
+static mut SAM_PORTER_BRIDGES: Option<Vec<Option<Bridge>>> = None;
+
+fn bridges() -> &'static mut Vec<Option<Bridge>> {
+    unsafe {
+        #[allow(static_mut_refs)]
+        let existing = SAM_PORTER_BRIDGES.as_mut();
+
+        match existing {
+            Some(bridges) => bridges,
+            None => {
+                SAM_PORTER_BRIDGES = Some(vec![None, None, None, None]);
+
+                #[allow(static_mut_refs)]
+                SAM_PORTER_BRIDGES.as_mut().unwrap()
+            }
+        }
+    }
+}
+
+macro_rules! bridge_for {
+    ($type_name:ident => $type:expr) => {
+        #[unsafe(no_mangle)]
+        extern "C" fn $type_name(
+            in_len: u8,
+            in_data: *const core::ffi::c_void,
+            out_len: u8,
+            out_data: *mut core::ffi::c_void,
+        ) {
+            let bridges = bridges();
+
+            if let Some(Some(f)) = bridges.get_mut($type.index()) {
+                f(in_len, in_data, out_len, out_data);
+            }
+        }
+    };
+}
+
+bridge_for!(bridge_a => Channel::A);
+bridge_for!(bridge_b => Channel::B);
+bridge_for!(bridge_c => Channel::C);
+bridge_for!(bridge_d => Channel::D);
