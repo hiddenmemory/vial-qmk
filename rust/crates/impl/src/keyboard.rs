@@ -12,6 +12,14 @@ pub enum Role {
     Secondary,
 }
 
+#[derive(Copy, Clone, Hash, Eq, PartialEq)]
+pub enum Channel {
+    A,
+    B,
+    C,
+    D,
+}
+
 pub struct Keyboard;
 impl Keyboard {
     #[inline]
@@ -141,14 +149,6 @@ impl Keyboard {
             );
         }
     }
-}
-
-#[derive(Copy, Clone, Hash, Eq, PartialEq)]
-pub enum Channel {
-    A,
-    B,
-    C,
-    D,
 }
 
 impl Channel {
