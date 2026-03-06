@@ -1,12 +1,25 @@
 // Copyright 2025 Dasky (@daskygit)
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#include "backlight.h"
+#include "debug.h"
+#include "keyboard.h"
+#include "print.h"
 #include "quantum.h"
 #include "common/display_lcd.h"
 
+void keyboard_post_init_kb_rs(void);
+
 void keyboard_post_init_kb(void) {
-    display_init_kb();
+    debug_enable = true;
+    keyboard_post_init_kb_rs();
     keyboard_post_init_user();
+}
+
+void housekeeping_task_user_rs(void);
+
+void housekeeping_task_user() {
+    housekeeping_task_user_rs();
 }
 
 const pin_t row_pins_left[MATRIX_ROWS/2]  = MATRIX_ROW_PINS;
@@ -83,3 +96,4 @@ void matrix_read_cols_on_row(matrix_row_t current_matrix[], uint8_t current_row)
     // Update the matrix
     current_matrix[current_row] = current_row_value;
 }
+

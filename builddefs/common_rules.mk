@@ -23,6 +23,8 @@ $(foreach OUTPUT,$(OUTPUTS),$(eval $(OUTPUT)_OBJ +=$(call OBJ_FROM_SRC,$(OUTPUT)
 
 # Define a list of all objects
 OBJ := $(foreach OUTPUT,$(OUTPUTS),$($(OUTPUT)_OBJ))
+RUST_OBJ := rust/rust_impl.a
+OBJ += $(RUST_OBJ)
 NO_LTO_OBJ := $(filter %.a,$(OBJ))
 
 MASTER_OUTPUT := $(firstword $(OUTPUTS))
