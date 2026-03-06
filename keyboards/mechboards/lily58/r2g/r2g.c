@@ -7,19 +7,30 @@
 #include "print.h"
 #include "quantum.h"
 #include "common/display_lcd.h"
+#include "rgb_matrix.h"
 
-void keyboard_post_init_kb_rs(void);
+void keyboard_post_init_rs(void);
+void raw_hid_receive_rs(uint8_t *data, uint8_t length);
+void housekeeping_task_user_rs(void);
+void rgb_matrix_indicators_advanced_rs(uint8_t led_min, uint8_t led_max);
 
 void keyboard_post_init_kb(void) {
     debug_enable = true;
-    keyboard_post_init_kb_rs();
+    keyboard_post_init_rs();
     keyboard_post_init_user();
 }
 
-void housekeeping_task_user_rs(void);
-
 void housekeeping_task_user() {
     housekeeping_task_user_rs();
+}
+
+void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
+    raw_hid_receive_rs(data, length);
+}
+
+bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
+    rgb_matrix_indicators_advanced_rs(led_min, led_max);
+    return false;
 }
 
 const pin_t row_pins_left[MATRIX_ROWS/2]  = MATRIX_ROW_PINS;

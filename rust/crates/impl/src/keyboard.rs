@@ -18,6 +18,8 @@ pub enum Channel {
     B,
     C,
     D,
+    E,
+    F,
 }
 
 pub struct Keyboard;
@@ -145,6 +147,8 @@ impl Keyboard {
                     Channel::B => bridge_b,
                     Channel::C => bridge_c,
                     Channel::D => bridge_d,
+                    Channel::E => bridge_e,
+                    Channel::F => bridge_f,
                 }),
             );
         }
@@ -158,15 +162,19 @@ impl Channel {
             Channel::B => 1,
             Channel::C => 2,
             Channel::D => 3,
+            Channel::E => 4,
+            Channel::F => 5,
         }
     }
 
     fn to_qmk_id(self) -> i8 {
         match self {
-            Channel::A => qmk_sys::serial_transaction_id::USER_CHANNEL_0 as i8,
-            Channel::B => qmk_sys::serial_transaction_id::USER_CHANNEL_1 as i8,
-            Channel::C => qmk_sys::serial_transaction_id::USER_CHANNEL_2 as i8,
-            Channel::D => qmk_sys::serial_transaction_id::USER_CHANNEL_3 as i8,
+            Channel::A => qmk_sys::serial_transaction_id::USER_CHANNEL_A as i8,
+            Channel::B => qmk_sys::serial_transaction_id::USER_CHANNEL_B as i8,
+            Channel::C => qmk_sys::serial_transaction_id::USER_CHANNEL_C as i8,
+            Channel::D => qmk_sys::serial_transaction_id::USER_CHANNEL_D as i8,
+            Channel::E => qmk_sys::serial_transaction_id::USER_CHANNEL_E as i8,
+            Channel::F => qmk_sys::serial_transaction_id::USER_CHANNEL_F as i8,
         }
     }
 }
@@ -183,7 +191,7 @@ fn bridges() -> &'static mut Vec<Option<Bridge>> {
         match existing {
             Some(bridges) => bridges,
             None => {
-                SAM_PORTER_BRIDGES = Some(vec![None, None, None, None]);
+                SAM_PORTER_BRIDGES = Some(vec![None, None, None, None, None, None]);
 
                 #[allow(static_mut_refs)]
                 SAM_PORTER_BRIDGES.as_mut().unwrap()
@@ -214,3 +222,5 @@ bridge_for!(bridge_a => Channel::A);
 bridge_for!(bridge_b => Channel::B);
 bridge_for!(bridge_c => Channel::C);
 bridge_for!(bridge_d => Channel::D);
+bridge_for!(bridge_e => Channel::E);
+bridge_for!(bridge_f => Channel::F);

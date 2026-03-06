@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
     "crates/impl",
-    "crates/qmk_sys",
+    "crates/qmk_sys"
 ]
 
 [profile.dev]

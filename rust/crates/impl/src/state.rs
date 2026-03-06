@@ -12,6 +12,7 @@ pub struct State {
     pub primary_slime_drawn: bool,
     pub secondary_slime_drawn: bool,
     pub secondary_slime: Slime,
+    pub blue_index: u8,
 }
 
 impl State {
@@ -27,6 +28,7 @@ impl State {
             primary_slime_drawn: false,
             secondary_slime_drawn: false,
             secondary_slime: Slime::Orange,
+            blue_index: 0
         }
     }
 }

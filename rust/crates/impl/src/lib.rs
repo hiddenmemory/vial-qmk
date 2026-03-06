@@ -40,8 +40,16 @@ fn init(display: &mut Display, state: &mut State) {
 fn render(display: &mut Display, state: &mut State) {
     match Keyboard::role() {
         Role::Primary => {
+            render_left(display, state);
+
+            let slime = if KeyMap::get_layer() > 0 {
+                &state.orange_slime
+            } else {
+                &state.green_slime
+            };
+
             if !state.primary_slime_drawn
-                && let Some(ref image) = state.green_slime
+                && let Some(image) = slime
             {
                 image.draw(
                     display.position(image, utils::Alignment::Center, utils::Alignment::Trailing),
@@ -50,8 +58,6 @@ fn render(display: &mut Display, state: &mut State) {
 
                 state.primary_slime_drawn = true;
             }
-
-            render_left(display, state);
         }
         Role::Secondary => {
             let slime = match state.secondary_slime {
@@ -92,6 +98,7 @@ fn render_left(display: &mut Display, state: &mut State) {
         .map(|existing| existing != current_layer)
         .unwrap_or(true)
     {
+        state.primary_slime_drawn = false;
         state.active_layer = Some(current_layer);
         widgets::layer::render(display, state);
     }
@@ -101,6 +108,7 @@ fn register_secondary_sync_handlers() {
     Keyboard::listen(keyboard::Channel::A, |request: Request| {
         let success = if let Some(slime) = request.secondary_change_slime {
             let state = state::get();
+            state.blue_index = request.blue_index;
             state.secondary_slime_drawn = false;
             state.secondary_slime = slime;
             true
@@ -130,6 +138,7 @@ impl Slime {
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 struct Request {
+    blue_index: u8,
     secondary_change_slime: Option<Slime>,
 }
 
@@ -144,7 +153,7 @@ fn run_loop() {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn keyboard_post_init_kb_rs() {
+pub extern "C" fn keyboard_post_init_rs() {
     heap::initialise();
     display::initialise();
 
@@ -158,9 +167,9 @@ pub extern "C" fn keyboard_post_init_kb_rs() {
     debug_log("setting display brightness");
     Display::set_brightness(Display::max_brightness() / 2);
 
-    // if Keyboard::is_secondary() {
-    register_secondary_sync_handlers();
-    // }
+    if Keyboard::is_secondary() {
+        register_secondary_sync_handlers();
+    }
 
     debug_log("beginning run loop");
     run_loop();
@@ -187,20 +196,64 @@ pub extern "C" fn housekeeping_task_user_rs() {
     }
 
     state.last_sync = Timer::read();
-
-    debug_log(&format!("housekeeping {}", state.last_sync));
-
     state.secondary_slime = state.secondary_slime.other();
+
+    state.blue_index += 1;
+    if state.blue_index == qmk_sys::RGB_MATRIX_LED_COUNT as u8 {
+        state.blue_index = 0;
+    }
+
+    debug_log(&format!("blue_index = {}", state.blue_index));
 
     let result: Result<Response, _> = Keyboard::secondary_send(
         keyboard::Channel::A,
         Request {
+            blue_index: state.blue_index,
             secondary_change_slime: Some(state.secondary_slime),
         },
     );
 
-    match result {
-        Ok(response) => debug_log(&format!("response = {}", response.success)),
-        Err(err) => debug_log(&format!("error: {err}")),
+    if let Err(err) = result {
+        debug_log(&format!("error: {err}"))
+    }
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn raw_hid_receive_rs(data: *mut u8, length: u8) {
+    let actual_data = unsafe { alloc::slice::from_raw_parts_mut(data, length as usize) };
+
+    debug_log(&format!("got hid message: {:X}", actual_data[0]));
+
+    actual_data[1] = actual_data[0];
+
+    if actual_data[0] == 0x21 {
+        let (total, used, free) = heap::usage();
+
+        debug_log(&format!(
+            "request for memory usage: total={total}, used={used}, free={free} ({}%)",
+            heap::usage_percentage()
+        ));
+    }
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn rgb_matrix_indicators_advanced_rs(min: u8, max: u8) {
+    unsafe {
+        let state = state::get();
+        let value = 0x05;
+
+        for offset in min..=max {
+            match KeyMap::get_layer() {
+                _ if offset == state.blue_index => {
+                    qmk_sys::rgb_matrix_set_color(offset as i32, 0x00, value, value)
+                }
+                0 if matches!(Keyboard::role(), Role::Primary)
+                    || matches!(state.secondary_slime, Slime::Green) =>
+                {
+                    qmk_sys::rgb_matrix_set_color(offset as i32, 0x00, value, 0x00)
+                }
+                _ => qmk_sys::rgb_matrix_set_color(offset as i32, value, value / 2, 0),
+            }
+        }
     }
 }

@@ -15,3 +15,15 @@ pub fn initialise() {
         HEAP.init(HEAP_MEM.as_mut_ptr() as usize, HEAP_SIZE);
     };
 }
+
+pub fn usage() -> (usize, usize, usize) {
+    unsafe {
+        #[allow(static_mut_refs)]
+        (HEAP_SIZE, HEAP.used(), HEAP.free())
+    }
+}
+
+pub fn usage_percentage() -> u8 {
+    let (total, used, _) = usage();
+    ((used as f32 / total as f32) * 100f32) as u8
+}
