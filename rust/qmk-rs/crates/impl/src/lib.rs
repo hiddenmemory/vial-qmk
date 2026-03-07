@@ -140,7 +140,7 @@ pub extern "C" fn keyboard_post_init_rs() {
 #[unsafe(no_mangle)]
 pub extern "C" fn update(_trigger_time: u32, _cb_arg: *mut core::ffi::c_void) -> u32 {
     render(display::get(), state::get());
-    80 // ms
+    32 // ms
 }
 
 #[unsafe(no_mangle)]
