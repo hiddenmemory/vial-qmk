@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 extern crate alloc;
 extern crate core;
 
-use alloc::format;
 #[cfg(target_arch = "arm")]
 use rp2040_panic_usb_boot as _;
 
@@ -35,75 +34,29 @@ mod usb;
 mod utils;
 mod widgets;
 
-fn init(display: &mut Display, state: &mut State) {
+fn first_render(display: &mut Display, state: &mut State) {
     display.clear();
     render(display, state);
 }
 
-fn render(display: &mut Display, state: &mut State) {
+fn update_state(state: &mut State) {
     match Keyboard::role() {
-        Role::Primary => {
-            render_left(display, state);
-
-            let slime = if KeyMap::get_layer() > 0 {
-                &state.orange_slime
-            } else {
-                &state.green_slime
-            };
-
-            if !state.primary_slime_drawn
-                && let Some(image) = slime
-            {
-                image.draw(
-                    display.position(image, utils::Alignment::Center, utils::Alignment::Trailing),
-                    display,
-                );
-
-                state.primary_slime_drawn = true;
-            }
-        }
-        Role::Secondary => {
-            let slime = match state.secondary_slime {
-                Slime::Green => &state.green_slime,
-                Slime::Orange => &state.orange_slime,
-            };
-
-            if !state.secondary_slime_drawn
-                && let Some(image) = slime
-            {
-                image.draw(
-                    display.position(image, utils::Alignment::Center, utils::Alignment::Trailing),
-                    display,
-                );
-
-                state.secondary_slime_drawn = true;
-            }
-        }
+        Role::Primary => primary::update(state),
+        Role::Secondary => secondary::update(state),
     }
 }
 
-fn render_left(display: &mut Display, state: &mut State) {
-    let current_os = HostOS::current();
-
-    if state
-        .host_os
-        .map(|existing| existing.ne(&current_os))
-        .unwrap_or(true)
-    {
-        state.host_os = Some(current_os);
-        widgets::os::render(display, state);
+fn layout(display: &mut Display, state: &mut State) {
+    match Keyboard::role() {
+        Role::Primary => primary::layout(display, state),
+        Role::Secondary => secondary::layout(display, state),
     }
+}
 
-    let current_layer = KeyMap::get_layer();
-
-    if state
-        .active_layer
-        .map(|existing| existing != current_layer)
-        .unwrap_or(true)
-    {
-        state.primary_slime_drawn = false;
-        state.active_layer = Some(current_layer);
-        widgets::layer::render(display, state);
+fn render(display: &mut Display, state: &mut State) {
+    match Keyboard::role() {
+        Role::Primary => primary::render(display, state),
+        Role::Secondary => secondary::render(display, state),
     }
 }
 
@@ -115,18 +68,22 @@ fn run_loop() {
 #[unsafe(no_mangle)]
 pub extern "C" fn keyboard_post_init_rs() {
     heap::initialise();
-    display::initialise();
 
     debug_log("initialising the display");
-
-    let state = state::get();
-    state.green_slime = unsafe { Some(Image::new(&qmk_sys::gfx_GarbageSlime)) };
-    state.orange_slime = unsafe { Some(Image::new(&qmk_sys::gfx_ChefSlime)) };
-    init(display::get(), state);
+    display::initialise();
 
     debug_log("setting display brightness");
-    Display::set_brightness(Display::max_brightness() / 2);
+    Display::set_brightness(Display::max_brightness() / 3);
 
+    debug_log("setting up initial state");
+    let state = state::initialise(initialise_state);
+
+    debug_log("applying first render");
+    update_state(state);
+    layout(display::get(), state);
+    first_render(display::get(), state);
+
+    debug_log("setting up side specific configuration");
     if Keyboard::is_primary() {
         primary::initialise();
     } else {
@@ -137,9 +94,28 @@ pub extern "C" fn keyboard_post_init_rs() {
     run_loop();
 }
 
+fn initialise_state(state: &mut State) {
+    state.green_slime = unsafe { Some(Image::new(&qmk_sys::gfx_GarbageSlime)) };
+    state.orange_slime = unsafe { Some(Image::new(&qmk_sys::gfx_ChefSlime)) };
+
+    state
+        .widget_primary_image
+        .set_image(&state.green_slime)
+        .set_vertical(utils::Alignment::Trailing);
+
+    state
+        .widget_secondary_image
+        .set_image(&state.orange_slime)
+        .set_vertical(utils::Alignment::Trailing);
+}
+
 #[unsafe(no_mangle)]
 pub extern "C" fn update(_trigger_time: u32, _cb_arg: *mut core::ffi::c_void) -> u32 {
-    render(display::get(), state::get());
+    let state = state::get();
+
+    update_state(state);
+    render(display::get(), state);
+
     32 // ms
 }
 

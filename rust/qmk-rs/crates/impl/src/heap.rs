@@ -17,10 +17,8 @@ pub fn initialise() {
 }
 
 pub fn usage() -> (usize, usize, usize) {
-    unsafe {
-        #[allow(static_mut_refs)]
-        (HEAP_SIZE, HEAP.used(), HEAP.free())
-    }
+    #[allow(static_mut_refs)]
+    (HEAP_SIZE, HEAP.used(), HEAP.free())
 }
 
 pub fn usage_percentage() -> u8 {

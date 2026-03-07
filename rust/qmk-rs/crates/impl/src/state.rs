@@ -1,6 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{image::Image, os::HostOS, secondary};
+use crate::{
+    image::Image,
+    secondary,
+    widgets::{self, WidgetState},
+};
 
 #[derive(Default, Eq, PartialEq, Copy, Clone, Debug, Serialize, Deserialize)]
 pub enum Slime {
@@ -21,14 +25,14 @@ impl Slime {
 #[derive(Default)]
 pub struct State {
     pub backlight_level: Option<u8>,
-    pub active_layer: Option<u8>,
-    pub host_os: Option<HostOS>,
+    pub widget_os: WidgetState<widgets::os::State>,
+    pub widget_layer: WidgetState<widgets::layer::State>,
+    pub widget_primary_image: WidgetState<widgets::image::State>,
+    pub widget_secondary_image: WidgetState<widgets::image::State>,
     pub deferred_token: u8,
     pub last_sync: u32,
     pub green_slime: Option<Image>,
     pub orange_slime: Option<Image>,
-    pub primary_slime_drawn: bool,
-    pub secondary_slime_drawn: bool,
     // TODO this should be split into a shared state, and then we can just sync that
     // when we make changes, perhaps we have a flag to say it requires sync, then housekeeping
     // can push that change automatically to the other side
@@ -37,17 +41,17 @@ pub struct State {
 }
 
 impl State {
-    pub const fn new() -> State {
+    pub fn new() -> State {
         State {
             backlight_level: None,
-            active_layer: None,
-            host_os: None,
+            widget_os: Default::default(),
+            widget_layer: Default::default(),
+            widget_primary_image: Default::default(),
+            widget_secondary_image: Default::default(),
             deferred_token: 0,
             last_sync: 0,
             green_slime: None,
             orange_slime: None,
-            primary_slime_drawn: false,
-            secondary_slime_drawn: false,
             secondary_slime: Slime::Orange,
             blue_index: 0,
         }
@@ -68,11 +72,28 @@ impl State {
     }
 }
 
-static mut STATE: State = State::new();
+static mut STATE: Option<State> = None;
 
 pub fn get() -> &'static mut State {
     unsafe {
         #[allow(static_mut_refs)]
-        &mut STATE
+        STATE.as_mut().unwrap()
+    }
+}
+
+pub fn initialise<F>(f: F) -> &'static mut State
+where
+    F: Fn(&mut State),
+{
+    unsafe {
+        #[allow(static_mut_refs)]
+        if STATE.is_none() {
+            STATE = Some(State::new())
+        }
+
+        #[allow(static_mut_refs)]
+        let state = STATE.as_mut().unwrap();
+        f(state);
+        state
     }
 }

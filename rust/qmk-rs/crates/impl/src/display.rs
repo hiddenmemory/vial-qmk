@@ -1,6 +1,6 @@
 use crate::{
     font::Font,
-    utils::{Alignment, HSV, Point, Size, Sizeable, debug_log},
+    utils::{HSV, Point, Rect, Size, debug_log},
 };
 
 static mut DISPLAY: Option<Display> = None;
@@ -23,7 +23,7 @@ pub fn initialise() {
 
 #[derive(Copy, Clone)]
 pub struct Display {
-    pub size: Size,
+    pub bounds: Rect,
     pub clear_colour: HSV,
     pub device: qmk_sys::painter_device_t,
     pub small_font: Font,
@@ -60,9 +60,12 @@ impl Display {
         let large_font = Font::new(unsafe { &qmk_sys::font_pixellari24 });
 
         Display {
-            size: Size {
-                width: panel_width,
-                height: panel_height,
+            bounds: Rect {
+                origin: Point::zero(),
+                size: Size {
+                    width: panel_width,
+                    height: panel_height,
+                },
             },
             clear_colour: HSV::black(),
             device: display,
@@ -97,17 +100,13 @@ impl Display {
     }
 
     pub fn clear_to(&self, colour: HSV) {
-        self.fill_rect(
-            0,
-            0,
-            qmk_sys::LCD_WIDTH as u16,
-            qmk_sys::LCD_HEIGHT as u16,
-            colour,
-        )
+        self.fill_rect(self.bounds, colour)
     }
 
-    pub fn stroke_rect(&self, left: u16, top: u16, right: u16, bottom: u16, colour: HSV) {
+    pub fn stroke_rect(&self, rect: Rect, colour: HSV) {
         unsafe {
+            let (left, top, right, bottom) = rect.as_qp();
+
             _ = qmk_sys::qp_rect(
                 self.device,
                 left,
@@ -122,8 +121,10 @@ impl Display {
         }
     }
 
-    pub fn fill_rect(&self, left: u16, top: u16, right: u16, bottom: u16, colour: HSV) {
+    pub fn fill_rect(&self, rect: Rect, colour: HSV) {
         unsafe {
+            let (left, top, right, bottom) = rect.as_qp();
+
             _ = qmk_sys::qp_rect(
                 self.device,
                 left,
@@ -136,28 +137,5 @@ impl Display {
                 true,
             )
         }
-    }
-
-    pub fn position<S: Sizeable>(
-        &self,
-        sizeable: S,
-        horizontal: Alignment,
-        vertical: Alignment,
-    ) -> Point {
-        let size = sizeable.size();
-
-        let x = match horizontal {
-            Alignment::Leading => 0,
-            Alignment::Center => self.size.width.saturating_sub(size.width) / 2,
-            Alignment::Trailing => self.size.width.saturating_sub(size.width),
-        };
-
-        let y = match vertical {
-            Alignment::Leading => 0,
-            Alignment::Center => self.size.height.saturating_sub(size.height) / 2,
-            Alignment::Trailing => self.size.height.saturating_sub(size.height),
-        };
-
-        Point::at(x, y)
     }
 }

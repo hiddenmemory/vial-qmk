@@ -1,6 +1,8 @@
-#[derive(Copy, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, PartialOrd)]
 pub enum HostOS {
-    Other,
+    #[default]
+    Unknown,
+    Unsure,
     Linux,
     Windows,
     MacOS,
@@ -19,14 +21,17 @@ impl HostOS {
             HostOS::Windows
         } else if detected == qmk_sys::os_variant_t::OS_IOS {
             HostOS::Ios
+        } else if detected == qmk_sys::os_variant_t::OS_UNSURE {
+            HostOS::Unsure
         } else {
-            HostOS::Other
+            HostOS::Unknown
         }
     }
 
     pub fn name(&self) -> &str {
         match self {
-            HostOS::Other => "Other",
+            HostOS::Unknown => "?",
+            HostOS::Unsure => "Unsure",
             HostOS::Linux => "Linux",
             HostOS::Windows => "Windows",
             HostOS::MacOS => "macOS",

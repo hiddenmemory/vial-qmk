@@ -1,3 +1,7 @@
+use alloc::ffi::CString;
+
+use crate::utils::Size;
+
 #[derive(Copy, Clone)]
 pub struct Font {
     pub line_height: u16,
@@ -13,6 +17,13 @@ impl Font {
                 line_height,
                 handle,
             }
+        }
+    }
+
+    pub fn size_of(&self, text: &CString) -> Size {
+        Size {
+            width: unsafe { qmk_sys::qp_textwidth(self.handle, text.as_ptr()) as u16 },
+            height: self.line_height,
         }
     }
 }

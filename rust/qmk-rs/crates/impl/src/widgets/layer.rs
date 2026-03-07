@@ -1,24 +1,61 @@
 use alloc::format;
 
-use crate::{display::Display, keymap::KeyMap, state::State, utils::HSV};
+use crate::{
+    display::Display,
+    keymap::KeyMap,
+    utils::{HSV, Rect, Size},
+    widgets::WidgetState,
+};
 
-pub fn render(display: &Display, _state: &mut State) {
-    let lcd_width = display.size.width;
-    let top: u16 = 10 + display.small_font.line_height + 4;
+const PADDING: u16 = 2;
 
-    let layer_width = (lcd_width as f32 / KeyMap::layer_count() as f32) as u16;
-    let left_padding = (lcd_width - (layer_width * KeyMap::layer_count() as u16)) / 2;
-    let current = KeyMap::get_layer();
+#[derive(Debug, Default)]
+pub struct State {
+    active_layer: Option<u8>,
+}
 
-    for layer in 0..KeyMap::layer_count() {
-        let label = format!("{}", layer + 1);
+pub fn request_size(display: &Display, state: &State) -> Size {
+    Size {
+        width: display.bounds.size.width,
+        height: display.small_font.line_height + (PADDING * 2),
+    }
+}
+
+pub fn update(state: &mut State) -> bool {
+    let current_layer = KeyMap::get_layer();
+
+    if state
+        .active_layer
+        .map(|existing| existing != current_layer)
+        .unwrap_or(true)
+    {
+        state.active_layer = Some(current_layer);
+        true
+    } else {
+        false
+    }
+}
+
+pub fn render(display: &Display, state: &State, frame: Rect) {
+    let layer_count = KeyMap::layer_count() as u16;
+    let layer_width = frame.size.width / layer_count;
+    let padding = frame.size.width % layer_count / 2;
+    let current = state.active_layer.unwrap_or(KeyMap::get_layer()) as u16;
+
+    for layer in 0..layer_count {
+        let text = format!("{}", layer + 1);
+
+        let rect = Rect::new(
+            frame.origin.x + padding + (layer * layer_width),
+            frame.origin.y,
+            layer_width,
+            frame.size.height,
+        );
 
         super::center_text(
             display,
             &display.large_font,
-            left_padding + (layer_width * layer as u16),
-            top,
-            layer_width,
+            rect,
             if current == layer {
                 HSV::black()
             } else {
@@ -29,7 +66,7 @@ pub fn render(display: &Display, _state: &mut State) {
             } else {
                 HSV::black()
             },
-            &label,
+            &text,
         )
     }
 }
