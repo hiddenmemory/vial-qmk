@@ -29,12 +29,14 @@ pub struct Display {
     pub clear_colour: ChangeableValue<HSV>,
     pub accent_colour: ChangeableValue<HSV>,
     pub device: qmk_sys::painter_device_t,
+    #[allow(dead_code)]
     device_buffer: Vec<u8>,
     actual_device: qmk_sys::painter_device_t,
     pub small_font: Font,
     pub large_font: Font,
 }
 
+#[allow(dead_code)]
 impl Display {
     pub fn new() -> Display {
         let (panel_width, panel_height) = Self::dimensions();

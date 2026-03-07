@@ -1,5 +1,3 @@
-use core::ops::Deref;
-
 use alloc::format;
 
 pub fn debug_log(message: &str) {
@@ -8,6 +6,7 @@ pub fn debug_log(message: &str) {
     }
 }
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub struct HSV {
     pub h: u8,
@@ -76,6 +75,7 @@ impl Sizeable for Size {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Copy, Clone, Default, Debug)]
 pub enum Alignment {
     Leading,

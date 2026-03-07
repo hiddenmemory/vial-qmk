@@ -23,6 +23,8 @@ pub enum Channel {
 }
 
 pub struct Keyboard;
+
+#[allow(dead_code)]
 impl Keyboard {
     #[inline]
     pub fn side() -> Side {

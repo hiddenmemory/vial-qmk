@@ -20,11 +20,6 @@ pub struct WidgetState<Inner: Default + core::fmt::Debug> {
 }
 
 impl<Inner: Default + core::fmt::Debug> WidgetState<Inner> {
-    pub fn ignoring_accent(mut self) -> Self {
-        self.ignores_accent = true;
-        self
-    }
-
     pub fn set_needs_display(&mut self) {
         self.requires_repaint = true;
     }

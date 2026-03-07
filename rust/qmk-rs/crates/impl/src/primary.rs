@@ -21,11 +21,9 @@ pub fn initialise() {
         |_, request: Option<hid_bridge::DateTime>| {
             let state = state::get();
 
-            state.widget_clock.set_seconds(
-                request
-                    .map(|r| r.seconds_since_midnight)
-                    .unwrap_or(state.widget_clock.inner.seconds_since_midnight),
-            );
+            if let Some(hid_bridge::DateTime{ seconds_since_midnight })  = request {
+                state.last_clock.set(seconds_since_midnight);
+            }
 
             secondary::sync(state);
 

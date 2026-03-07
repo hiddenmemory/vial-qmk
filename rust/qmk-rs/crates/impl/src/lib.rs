@@ -2,8 +2,6 @@
 #![no_builtins]
 #![crate_type = "staticlib"]
 
-use serde::{Deserialize, Serialize};
-
 extern crate alloc;
 extern crate core;
 

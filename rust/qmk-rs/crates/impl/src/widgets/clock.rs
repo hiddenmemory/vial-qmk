@@ -52,17 +52,10 @@ pub fn update(state: &mut State) -> bool {
     let actual_minutes = (actual_seconds / seconds_in_minute) as u8;
     let actual_seconds = (actual_seconds % seconds_in_minute) as u8;
 
-    let mut needs_display = false;
+    let needs_display = state.hours != actual_hours || state.minutes != actual_minutes;
 
-    if state.hours != actual_hours {
-        state.hours = actual_hours;
-        needs_display = true;
-    }
-    if state.minutes != actual_minutes {
-        state.minutes = actual_minutes;
-        needs_display = true;
-    }
-
+    state.hours = actual_hours;
+    state.minutes = actual_minutes;
     state.seconds = actual_seconds;
 
     needs_display

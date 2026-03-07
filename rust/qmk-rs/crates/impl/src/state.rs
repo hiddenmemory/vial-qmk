@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     image::Image,
     secondary,
+    utils::ChangeableValue,
     widgets::{self, WidgetState},
 };
 
@@ -22,7 +23,6 @@ impl Slime {
     }
 }
 
-#[derive(Default)]
 pub struct State {
     pub backlight_level: Option<u8>,
     pub widget_os: WidgetState<widgets::os::State>,
@@ -32,6 +32,7 @@ pub struct State {
     pub widget_secondary_image: WidgetState<widgets::image::State>,
     pub deferred_token: u8,
     pub last_sync: u32,
+    pub last_clock: ChangeableValue<u32>,
     pub green_slime: Option<Image>,
     pub orange_slime: Option<Image>,
     // TODO this should be split into a shared state, and then we can just sync that
@@ -52,6 +53,7 @@ impl State {
             widget_secondary_image: widgets::image::initial(),
             deferred_token: 0,
             last_sync: 0,
+            last_clock: ChangeableValue::new(0),
             green_slime: None,
             orange_slime: None,
             secondary_slime: Slime::Orange,
@@ -69,7 +71,7 @@ impl State {
         self
     }
 
-    pub fn sync(&self) {
+    pub fn sync(&mut self) {
         secondary::sync(self);
     }
 }
