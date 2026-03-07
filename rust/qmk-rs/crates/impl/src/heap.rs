@@ -1,7 +1,7 @@
 use embedded_alloc::LlffHeap;
 use rp2040_hal as _;
 
-const HEAP_SIZE: usize = 64000;
+const HEAP_SIZE: usize = 64000 * 2;
 
 #[global_allocator]
 pub static HEAP: LlffHeap = LlffHeap::empty();

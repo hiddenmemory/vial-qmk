@@ -1,3 +1,6 @@
+use alloc::vec;
+use alloc::vec::Vec;
+
 use crate::{
     font::Font,
     utils::{HSV, Point, Rect, Size, debug_log},
@@ -17,24 +20,25 @@ pub fn initialise() {
         debug_log("bringing up display");
 
         #[allow(static_mut_refs)]
-        DISPLAY.replace(Display::init());
+        DISPLAY.replace(Display::new());
     }
 }
 
-#[derive(Copy, Clone)]
 pub struct Display {
     pub bounds: Rect,
     pub clear_colour: HSV,
     pub device: qmk_sys::painter_device_t,
+    device_buffer: Vec<u8>,
+    actual_device: qmk_sys::painter_device_t,
     pub small_font: Font,
     pub large_font: Font,
 }
 
 impl Display {
-    pub fn init() -> Display {
+    pub fn new() -> Display {
         let (panel_width, panel_height) = Self::dimensions();
 
-        let display = unsafe {
+        let actual_device = unsafe {
             qmk_sys::qp_st7789_make_spi_device(
                 panel_width,
                 panel_height,
@@ -47,10 +51,10 @@ impl Display {
         };
 
         unsafe {
-            qmk_sys::qp_init(display, qmk_sys::painter_rotation_t::QP_ROTATION_0);
+            qmk_sys::qp_init(actual_device, qmk_sys::painter_rotation_t::QP_ROTATION_0);
 
             qmk_sys::qp_set_viewport_offsets(
-                display,
+                actual_device,
                 qmk_sys::LCD_OFFSET_X as u16,
                 qmk_sys::LCD_OFFSET_Y as u16,
             );
@@ -58,6 +62,19 @@ impl Display {
 
         let small_font = Font::new(unsafe { &qmk_sys::font_pixellari18 });
         let large_font = Font::new(unsafe { &qmk_sys::font_pixellari24 });
+
+        let mut device_buffer = vec![0_u8; 64_801];
+        let device = unsafe {
+            qmk_sys::qp_make_rgb565_surface(
+                panel_width,
+                panel_height,
+                device_buffer.as_mut_ptr() as *mut core::ffi::c_void,
+            )
+        };
+
+        unsafe {
+            qmk_sys::qp_init(device, qmk_sys::painter_rotation_t::QP_ROTATION_0);
+        }
 
         Display {
             bounds: Rect {
@@ -68,7 +85,9 @@ impl Display {
                 },
             },
             clear_colour: HSV::black(),
-            device: display,
+            device,
+            device_buffer,
+            actual_device,
             small_font,
             large_font,
         }
@@ -96,10 +115,10 @@ impl Display {
     }
 
     pub fn clear(&self) {
-        self.clear_to(self.clear_colour);
+        self.fill(self.clear_colour);
     }
 
-    pub fn clear_to(&self, colour: HSV) {
+    pub fn fill(&self, colour: HSV) {
         self.fill_rect(self.bounds, colour)
     }
 
@@ -136,6 +155,12 @@ impl Display {
                 colour.v,
                 true,
             )
+        }
+    }
+
+    pub fn flush(&self) {
+        unsafe {
+            qmk_sys::qp_surface_draw(self.device, self.actual_device, 0, 0, false);
         }
     }
 }

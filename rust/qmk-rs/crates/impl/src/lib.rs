@@ -14,7 +14,6 @@ use crate::display::Display;
 use crate::image::Image;
 use crate::keyboard::{Keyboard, Role};
 use crate::keymap::KeyMap;
-use crate::os::HostOS;
 use crate::state::{Slime, State};
 use crate::timer::Timer;
 use crate::utils::debug_log;
@@ -58,6 +57,7 @@ fn render(display: &mut Display, state: &mut State) {
         Role::Primary => primary::render(display, state),
         Role::Secondary => secondary::render(display, state),
     }
+    display.flush();
 }
 
 fn run_loop() {

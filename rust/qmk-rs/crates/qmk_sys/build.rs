@@ -8,6 +8,7 @@ const HEADER_PATHS: &[&str] = &[
     "../../../../quantum/logging/print.h",
     "../../../../quantum/action.h",
     "../../../../quantum/painter/qp.h",
+    "../../../../drivers/painter/generic/qp_surface.h",
     "../../../../quantum/keyboard.h",
     "../../../../quantum/keymap_introspection.h",
     "../../../../quantum/rgb_matrix/rgb_matrix.h",

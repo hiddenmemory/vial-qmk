@@ -12,6 +12,7 @@ pub struct State {
     vertical_alignment: Alignment,
 }
 
+#[allow(dead_code)]
 impl WidgetState<State> {
     pub fn set_image(&mut self, image: &Option<Image>) -> &mut Self {
         let existing_id = self.inner.image.as_ref().map(|image| image.id);
@@ -39,12 +40,13 @@ impl WidgetState<State> {
     }
 }
 
+#[allow(dead_code)]
 pub fn request_size(_display: &Display, state: &State) -> Size {
     state
         .image
         .as_ref()
         .map(|image| image.size)
-        .unwrap_or(Default::default())
+        .unwrap_or_default()
 }
 
 pub fn update(_state: &mut WidgetState<State>) {}
