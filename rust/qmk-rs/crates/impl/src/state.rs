@@ -28,6 +28,7 @@ pub struct State {
     pub widget_os: WidgetState<widgets::os::State>,
     pub widget_layer: WidgetState<widgets::layer::State>,
     pub widget_primary_image: WidgetState<widgets::image::State>,
+    pub widget_clock: WidgetState<widgets::clock::State>,
     pub widget_secondary_image: WidgetState<widgets::image::State>,
     pub deferred_token: u8,
     pub last_sync: u32,
@@ -44,10 +45,11 @@ impl State {
     pub fn new() -> State {
         State {
             backlight_level: None,
-            widget_os: Default::default(),
+            widget_os: widgets::os::initial(),
             widget_layer: Default::default(),
-            widget_primary_image: Default::default(),
-            widget_secondary_image: Default::default(),
+            widget_primary_image: widgets::image::initial(),
+            widget_clock: widgets::clock::initial(),
+            widget_secondary_image: widgets::image::initial(),
             deferred_token: 0,
             last_sync: 0,
             green_slime: None,

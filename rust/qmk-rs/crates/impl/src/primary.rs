@@ -1,7 +1,37 @@
-use crate::{display::Display, keymap::KeyMap, state::State, usb, widgets};
+use hid_bridge::MessageType;
+
+use crate::{
+    display::Display,
+    keyboard::Keyboard,
+    keymap::KeyMap,
+    secondary,
+    state::{self, State},
+    usb, widgets,
+};
 
 pub fn initialise() {
+    if Keyboard::is_secondary() {
+        return;
+    }
+
     usb::initialise();
+
+    usb::listen::<hid_bridge::DateTime, hid_bridge::Empty, _>(
+        MessageType::DateTime,
+        |_, request: Option<hid_bridge::DateTime>| {
+            let state = state::get();
+
+            state.widget_clock.set_seconds(
+                request
+                    .map(|r| r.seconds_since_midnight)
+                    .unwrap_or(state.widget_clock.inner.seconds_since_midnight),
+            );
+
+            secondary::sync(state);
+
+            (Some(MessageType::Acknowledge), None)
+        },
+    )
 }
 
 pub fn update(state: &mut State) {

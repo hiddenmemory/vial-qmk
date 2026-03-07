@@ -14,9 +14,11 @@ pub fn initialise() {
         USB_HANDLERS = Some(Vec::with_capacity(QMK_RS_CHANNEL_LENGTH));
     }
 
-    hid_listen::<Empty, Empty, _>(MessageType::Ping, |_, _| (Some(MessageType::Pong), None));
+    listen::<Empty, Empty, _>(MessageType::Ping, |_, _| {
+        (Some(MessageType::Acknowledge), None)
+    });
 
-    hid_listen::<Empty, Empty, _>(MessageType::HeapUsage, |_, _| {
+    listen::<Empty, Empty, _>(MessageType::HeapUsage, |_, _| {
         let (total, used, free) = heap::usage();
 
         debug_log(&format!(
@@ -26,9 +28,11 @@ pub fn initialise() {
 
         (None, None)
     });
+
+    debug_log("[hid] initialised");
 }
 
-pub fn hid_listen<
+pub fn listen<
     IncomingBodyType: DeserializeOwned + 'static,
     OutgoingBodyType: Serialize + DeserializeOwned + 'static,
     F,

@@ -10,6 +10,13 @@ pub struct State {
     os: HostOS,
 }
 
+pub fn initial() -> WidgetState<State> {
+    WidgetState {
+        ignores_accent: true,
+        ..Default::default()
+    }
+}
+
 pub fn request_size(display: &Display, _state: &State) -> Size {
     Size {
         width: display.bounds.size.width,
@@ -29,7 +36,7 @@ pub fn update(state: &mut State) -> bool {
 }
 
 pub fn render(display: &Display, state: &State, frame: Rect) {
-    display.fill_rect(frame, display.clear_colour);
+    display.fill_rect(frame, *display.clear_colour);
 
     super::center_text(
         display,

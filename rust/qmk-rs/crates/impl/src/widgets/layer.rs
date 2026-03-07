@@ -4,17 +4,16 @@ use crate::{
     display::Display,
     keymap::KeyMap,
     utils::{HSV, Rect, Size},
-    widgets::WidgetState,
 };
 
-const PADDING: u16 = 2;
+const PADDING: u16 = 6;
 
 #[derive(Debug, Default)]
 pub struct State {
     active_layer: Option<u8>,
 }
 
-pub fn request_size(display: &Display, state: &State) -> Size {
+pub fn request_size(display: &Display, _state: &State) -> Size {
     Size {
         width: display.bounds.size.width,
         height: display.small_font.line_height + (PADDING * 2),
@@ -62,7 +61,7 @@ pub fn render(display: &Display, state: &State, frame: Rect) {
                 HSV::white()
             },
             if current == layer {
-                HSV::papaya()
+                *display.accent_colour
             } else {
                 HSV::black()
             },

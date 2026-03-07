@@ -16,7 +16,7 @@ use crate::keyboard::{Keyboard, Role};
 use crate::keymap::KeyMap;
 use crate::state::{Slime, State};
 use crate::timer::Timer;
-use crate::utils::debug_log;
+use crate::utils::{HSV, debug_log};
 
 mod display;
 mod font;
@@ -53,6 +53,12 @@ fn layout(display: &mut Display, state: &mut State) {
 }
 
 fn render(display: &mut Display, state: &mut State) {
+    if KeyMap::get_layer() > 0 {
+        display.accent_colour.set(HSV::papaya());
+    } else {
+        display.accent_colour.set(HSV::paulo());
+    }
+
     match Keyboard::role() {
         Role::Primary => primary::render(display, state),
         Role::Secondary => secondary::render(display, state),

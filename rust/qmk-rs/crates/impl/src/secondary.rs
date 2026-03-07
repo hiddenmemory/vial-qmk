@@ -1,9 +1,10 @@
 use alloc::format;
+use hid_bridge::MessageType;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     display::Display,
-    keyboard::{Channel, Keyboard},
+    keyboard::{self, Channel, Keyboard},
     state::{self, Slime, State},
     utils::debug_log,
     widgets,
@@ -13,6 +14,7 @@ use crate::{
 struct SyncStateRequest {
     blue_index: u8,
     secondary_slime: Slime,
+    seconds_since_midnight: u32,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
@@ -25,7 +27,7 @@ pub fn initialise() {
         return;
     }
 
-    Keyboard::listen(Channel::A, |request: SyncStateRequest| {
+    keyboard::listen(Channel::A, |request: SyncStateRequest| {
         let state = state::get();
 
         state.blue_index = request.blue_index;
@@ -37,6 +39,10 @@ pub fn initialise() {
         };
 
         state.widget_secondary_image.set_image(image);
+
+        state
+            .widget_clock
+            .set_seconds(request.seconds_since_midnight);
 
         SyncStateResponse { success: true }
     });
@@ -52,6 +58,7 @@ pub fn sync(state: &State) {
         SyncStateRequest {
             blue_index: state.blue_index,
             secondary_slime: state.secondary_slime,
+            seconds_since_midnight: state.widget_clock.inner.seconds_since_midnight,
         },
     );
 
@@ -60,11 +67,23 @@ pub fn sync(state: &State) {
     }
 }
 
-pub fn update(state: &mut State) {}
+pub fn update(state: &mut State) {
+    state.widget_clock.update(widgets::clock::update);
+}
+
 pub fn layout(display: &Display, state: &mut State) {
-    state.widget_secondary_image.layout_frame = display.bounds;
+    let size = widgets::clock::request_size(display, &state.widget_clock.inner);
+
+    let Some((clock_frame, image_frame)) = display.bounds.split_v(size.height) else {
+        return;
+    };
+
+    state.widget_clock.layout_frame = clock_frame;
+    state.widget_secondary_image.layout_frame = image_frame;
 }
 pub fn render(display: &mut Display, state: &mut State) {
+    state.widget_clock.render(display, widgets::clock::render);
+
     state
         .widget_secondary_image
         .render(display, widgets::image::render);

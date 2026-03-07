@@ -1,3 +1,5 @@
+use core::ops::Deref;
+
 use alloc::format;
 
 pub fn debug_log(message: &str) {
@@ -6,7 +8,7 @@ pub fn debug_log(message: &str) {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub struct HSV {
     pub h: u8,
     pub s: u8,
@@ -24,6 +26,10 @@ impl HSV {
 
     pub fn papaya() -> HSV {
         HSV::from(30, 100, 100)
+    }
+
+    pub fn paulo() -> HSV {
+        HSV::from(105, 89, 95)
     }
 
     pub fn from(h: u16, s: u8, v: u8) -> HSV {
@@ -140,5 +146,51 @@ impl Rect {
         );
 
         Some((top, bottom))
+    }
+}
+
+pub struct ChangeableValue<Value: Eq> {
+    value: Value,
+    has_changed: bool,
+}
+
+impl<Value: Eq> ChangeableValue<Value> {
+    pub fn new(value: Value) -> ChangeableValue<Value> {
+        ChangeableValue {
+            value,
+            has_changed: true,
+        }
+    }
+
+    pub fn set(&mut self, value: Value) {
+        if self.value.eq(&value) {
+            return;
+        }
+
+        self.value = value;
+        self.has_changed = true;
+    }
+
+    #[inline]
+    pub fn has_changed(&self) -> bool {
+        self.has_changed
+    }
+
+    pub fn flush(&mut self) {
+        self.has_changed = false;
+    }
+}
+
+impl<Value: Eq> core::ops::Deref for ChangeableValue<Value> {
+    type Target = Value;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl<Value: Eq> core::ops::DerefMut for ChangeableValue<Value> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.value
     }
 }

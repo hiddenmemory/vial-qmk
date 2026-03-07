@@ -1,7 +1,7 @@
 use crate::{
     display::Display,
     image::Image,
-    utils::{Alignment, HSV, Rect, Size},
+    utils::{Alignment, Rect, Size},
     widgets::WidgetState,
 };
 
@@ -40,6 +40,13 @@ impl WidgetState<State> {
     }
 }
 
+pub fn initial() -> WidgetState<State> {
+    WidgetState {
+        ignores_accent: true,
+        ..Default::default()
+    }
+}
+
 #[allow(dead_code)]
 pub fn request_size(_display: &Display, state: &State) -> Size {
     state
@@ -49,10 +56,8 @@ pub fn request_size(_display: &Display, state: &State) -> Size {
         .unwrap_or_default()
 }
 
-pub fn update(_state: &mut WidgetState<State>) {}
-
 pub fn render(display: &Display, state: &State, frame: Rect) {
-    display.fill_rect(frame, display.clear_colour);
+    display.fill_rect(frame, *display.clear_colour);
 
     if let Some(image) = &state.image {
         image.draw(

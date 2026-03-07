@@ -6,6 +6,7 @@ use crate::{
     utils::{HSV, Rect},
 };
 
+pub mod clock;
 pub mod image;
 pub mod layer;
 pub mod os;
@@ -15,9 +16,15 @@ pub struct WidgetState<Inner: Default + core::fmt::Debug> {
     pub inner: Inner,
     pub requires_repaint: bool,
     pub layout_frame: Rect,
+    pub ignores_accent: bool,
 }
 
 impl<Inner: Default + core::fmt::Debug> WidgetState<Inner> {
+    pub fn ignoring_accent(mut self) -> Self {
+        self.ignores_accent = true;
+        self
+    }
+
     pub fn set_needs_display(&mut self) {
         self.requires_repaint = true;
     }
@@ -35,7 +42,7 @@ impl<Inner: Default + core::fmt::Debug> WidgetState<Inner> {
     where
         F: Fn(&Display, &Inner, Rect),
     {
-        if self.requires_repaint {
+        if self.requires_repaint || (!self.ignores_accent && display.accent_colour.has_changed()) {
             f(display, &self.inner, self.layout_frame);
             self.requires_repaint = false;
         }
@@ -59,7 +66,7 @@ pub fn center_text(display: &Display, font: &Font, frame: Rect, fg: HSV, bg: HSV
         qmk_sys::qp_drawtext_recolor(
             display.device,
             position.x,
-            position.y,
+            position.y + 2,
             font.handle,
             actual_text.as_ptr(),
             fg.h,

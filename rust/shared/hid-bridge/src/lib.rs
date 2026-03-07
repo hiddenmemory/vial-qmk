@@ -43,7 +43,7 @@ pub const QMK_RS_CHANNEL_LENGTH: usize = 4;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MessageType {
     Ping,
-    Pong,
+    Acknowledge,
     HeapUsage,
     DateTime,
 }
@@ -71,7 +71,7 @@ impl MessageHeader {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DateTime {
-    pub timestamp: u64,
+    pub seconds_since_midnight: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

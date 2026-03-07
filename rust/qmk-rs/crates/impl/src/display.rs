@@ -3,7 +3,7 @@ use alloc::vec::Vec;
 
 use crate::{
     font::Font,
-    utils::{HSV, Point, Rect, Size, debug_log},
+    utils::{ChangeableValue, HSV, Point, Rect, Size, debug_log},
 };
 
 static mut DISPLAY: Option<Display> = None;
@@ -26,7 +26,8 @@ pub fn initialise() {
 
 pub struct Display {
     pub bounds: Rect,
-    pub clear_colour: HSV,
+    pub clear_colour: ChangeableValue<HSV>,
+    pub accent_colour: ChangeableValue<HSV>,
     pub device: qmk_sys::painter_device_t,
     device_buffer: Vec<u8>,
     actual_device: qmk_sys::painter_device_t,
@@ -84,7 +85,8 @@ impl Display {
                     height: panel_height,
                 },
             },
-            clear_colour: HSV::black(),
+            clear_colour: ChangeableValue::new(HSV::black()),
+            accent_colour: ChangeableValue::new(HSV::papaya()),
             device,
             device_buffer,
             actual_device,
@@ -114,8 +116,12 @@ impl Display {
         unsafe { qmk_sys::get_backlight_level() }
     }
 
+    pub fn requires_repaint(&self) -> bool {
+        self.clear_colour.has_changed() || self.accent_colour.has_changed()
+    }
+
     pub fn clear(&self) {
-        self.fill(self.clear_colour);
+        self.fill(*self.clear_colour);
     }
 
     pub fn fill(&self, colour: HSV) {
@@ -158,7 +164,10 @@ impl Display {
         }
     }
 
-    pub fn flush(&self) {
+    pub fn flush(&mut self) {
+        self.clear_colour.flush();
+        self.accent_colour.flush();
+
         unsafe {
             qmk_sys::qp_surface_draw(self.device, self.actual_device, 0, 0, false);
         }

@@ -113,46 +113,6 @@ impl Keyboard {
         let outgoing = unsafe { alloc::slice::from_raw_parts_mut(out_data_ptr, out_len as usize) };
         let _ = postcard::to_slice(&response, outgoing);
     }
-
-    pub fn listen<
-        'a,
-        Request: Deserialize<'a> + 'static,
-        Response: Default + Serialize + DeserializeOwned + 'static,
-        F,
-    >(
-        channel: Channel,
-        f: F,
-    ) where
-        F: Fn(Request) -> Response + 'static,
-    {
-        let inner_f = Rc::new(Box::new(f));
-
-        let outer_f: Bridge = Box::new(
-            move |in_len: u8,
-                  in_data: *const core::ffi::c_void,
-                  out_len: u8,
-                  out_data: *mut core::ffi::c_void| {
-                Keyboard::secondary_recv(in_len, in_data, out_len, out_data, inner_f.as_ref());
-            },
-        );
-
-        let bridges = bridges();
-        bridges[channel.index()].replace(outer_f);
-
-        unsafe {
-            qmk_sys::transaction_register_rpc(
-                channel.to_qmk_id(),
-                Some(match channel {
-                    Channel::A => bridge_a,
-                    Channel::B => bridge_b,
-                    Channel::C => bridge_c,
-                    Channel::D => bridge_d,
-                    Channel::E => bridge_e,
-                    Channel::F => bridge_f,
-                }),
-            );
-        }
-    }
 }
 
 impl Channel {
@@ -224,3 +184,43 @@ bridge_for!(bridge_c => Channel::C);
 bridge_for!(bridge_d => Channel::D);
 bridge_for!(bridge_e => Channel::E);
 bridge_for!(bridge_f => Channel::F);
+
+pub fn listen<
+    'a,
+    Request: Deserialize<'a> + 'static,
+    Response: Default + Serialize + DeserializeOwned + 'static,
+    F,
+>(
+    channel: Channel,
+    f: F,
+) where
+    F: Fn(Request) -> Response + 'static,
+{
+    let inner_f = Rc::new(Box::new(f));
+
+    let outer_f: Bridge = Box::new(
+        move |in_len: u8,
+              in_data: *const core::ffi::c_void,
+              out_len: u8,
+              out_data: *mut core::ffi::c_void| {
+            Keyboard::secondary_recv(in_len, in_data, out_len, out_data, inner_f.as_ref());
+        },
+    );
+
+    let bridges = bridges();
+    bridges[channel.index()].replace(outer_f);
+
+    unsafe {
+        qmk_sys::transaction_register_rpc(
+            channel.to_qmk_id(),
+            Some(match channel {
+                Channel::A => bridge_a,
+                Channel::B => bridge_b,
+                Channel::C => bridge_c,
+                Channel::D => bridge_d,
+                Channel::E => bridge_e,
+                Channel::F => bridge_f,
+            }),
+        );
+    }
+}
