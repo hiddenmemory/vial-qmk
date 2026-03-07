@@ -3,25 +3,23 @@ use serde::Deserialize;
 use std::{env, path::PathBuf};
 
 const HEADER_PATHS: &[&str] = &[
-    "../../../quantum/quantum_keycodes.h",
-    "../../../quantum/quantum.h",
-    "../../../quantum/logging/print.h",
-    "../../../quantum/action.h",
-    "../../../quantum/painter/qp.h",
-    "../../../quantum/keyboard.h",
-    "../../../quantum/keymap_introspection.h",
-    // "../../../quantum/logging/sendchar.h",
-    "../../../quantum/rgb_matrix/rgb_matrix.h",
-    "../../../quantum/split_common/transactions.h",
-    // "../../../quantum/eeconfig.h",
-    // "../../../quantum/keymap_extras/keymap_us.h",
-    "../../../keyboards/mechboards/common/qp_font/pixellari18.qff.h",
-    "../../../keyboards/mechboards/common/qp_font/pixellari24.qff.h",
-    "../../../keyboards/mechboards/common/qp_images/solaire.qgf.h",
-    "../../../keyboards/mechboards/common/qp_images/ChefSlime.qgf.h",
-    "../../../keyboards/mechboards/common/qp_images/GarbageSlime.qgf.h",
+    "../../../../quantum/quantum_keycodes.h",
+    "../../../../quantum/quantum.h",
+    "../../../../quantum/logging/print.h",
+    "../../../../quantum/action.h",
+    "../../../../quantum/painter/qp.h",
+    "../../../../quantum/keyboard.h",
+    "../../../../quantum/keymap_introspection.h",
+    "../../../../quantum/rgb_matrix/rgb_matrix.h",
+    "../../../../quantum/split_common/transactions.h",
+    "../../../../quantum/keymap_extras/keymap_uk.h",
+    "../../../../keyboards/mechboards/common/qp_font/pixellari18.qff.h",
+    "../../../../keyboards/mechboards/common/qp_font/pixellari24.qff.h",
+    "../../../../keyboards/mechboards/common/qp_images/solaire.qgf.h",
+    "../../../../keyboards/mechboards/common/qp_images/ChefSlime.qgf.h",
+    "../../../../keyboards/mechboards/common/qp_images/GarbageSlime.qgf.h",
     // This must be last
-    "../../../keyboards/mechboards/lily58/r2g/config.h",
+    "../../../../keyboards/mechboards/lily58/r2g/config.h",
 ];
 
 #[derive(Deserialize, Debug)]
@@ -31,7 +29,7 @@ struct CompilationUnit {
 }
 
 fn main() {
-    let contents = std::fs::read_to_string("../../../compile_commands.json")
+    let contents = std::fs::read_to_string("../../../../compile_commands.json")
         .expect("Unable to load the compile_commands.json");
     let units = serde_json::from_str::<Vec<CompilationUnit>>(&contents)
         .expect("Unable to parse compile_commands.json");
@@ -67,7 +65,7 @@ fn main() {
 
             if include {
                 if let Some(stripped_path) = argument.strip_prefix("-I") {
-                    Some(format!("-I../../../{stripped_path}"))
+                    Some(format!("-I../../../../{stripped_path}"))
                 } else {
                     Some(argument.to_string())
                 }

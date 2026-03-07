@@ -347,12 +347,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "hid-bridge"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "impl"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "critical-section",
  "embedded-alloc",
+ "hid-bridge",
  "micromath",
  "once_cell",
  "panic-halt",

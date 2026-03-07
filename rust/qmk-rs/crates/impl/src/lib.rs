@@ -16,7 +16,7 @@ use crate::image::Image;
 use crate::keyboard::{Keyboard, Role};
 use crate::keymap::KeyMap;
 use crate::os::HostOS;
-use crate::state::State;
+use crate::state::{Slime, State};
 use crate::timer::Timer;
 use crate::utils::debug_log;
 
@@ -27,8 +27,10 @@ mod image;
 mod keyboard;
 mod keymap;
 mod os;
+mod secondary;
 mod state;
 mod timer;
+mod usb;
 mod utils;
 mod widgets;
 
@@ -104,43 +106,6 @@ fn render_left(display: &mut Display, state: &mut State) {
     }
 }
 
-fn register_secondary_sync_handlers() {
-    Keyboard::listen(keyboard::Channel::A, |request: Request| {
-        let state = state::get();
-        state.blue_index = request.blue_index;
-        state.secondary_slime_drawn = state.secondary_slime.eq(&request.secondary_change_slime);
-        state.secondary_slime = request.secondary_change_slime;
-        Response { success: true }
-    });
-}
-
-#[derive(Default, Eq, PartialEq, Copy, Clone, Debug, Serialize, Deserialize)]
-pub enum Slime {
-    Green,
-    #[default]
-    Orange,
-}
-
-impl Slime {
-    fn other(&self) -> Slime {
-        match self {
-            Slime::Green => Slime::Orange,
-            Slime::Orange => Slime::Green,
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
-struct Request {
-    blue_index: u8,
-    secondary_change_slime: Slime,
-}
-
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
-struct Response {
-    success: bool,
-}
-
 fn run_loop() {
     state::get().deferred_token =
         unsafe { qmk_sys::defer_exec(1000, Some(update), core::ptr::null_mut()) };
@@ -161,8 +126,10 @@ pub extern "C" fn keyboard_post_init_rs() {
     debug_log("setting display brightness");
     Display::set_brightness(Display::max_brightness() / 2);
 
-    if Keyboard::is_secondary() {
-        register_secondary_sync_handlers();
+    if Keyboard::is_primary() {
+        usb::initialise();
+    } else {
+        secondary::initialise();
     }
 
     debug_log("beginning run loop");
@@ -182,7 +149,6 @@ pub extern "C" fn housekeeping_task_user_rs() {
     }
 
     let state = state::get();
-
     let elapsed = Timer::elapsed(state.last_sync);
 
     if elapsed < 2000 {
@@ -191,27 +157,9 @@ pub extern "C" fn housekeeping_task_user_rs() {
 
     state.last_sync = Timer::read();
     state.secondary_slime = state.secondary_slime.other();
+    state.incr_blue();
 
-    state.blue_index += 1;
-    if state.blue_index == qmk_sys::RGB_MATRIX_LED_COUNT as u8 {
-        state.blue_index = 0;
-    }
-
-    sync_to_secondary(state);
-}
-
-fn sync_to_secondary(state: &State) {
-    let result: Result<Response, _> = Keyboard::secondary_send(
-        keyboard::Channel::A,
-        Request {
-            blue_index: state.blue_index,
-            secondary_change_slime: state.secondary_slime,
-        },
-    );
-
-    if let Err(err) = result {
-        debug_log(&format!("error: {err}"))
-    }
+    secondary::sync(state);
 }
 
 #[unsafe(no_mangle)]
@@ -222,16 +170,10 @@ pub unsafe extern "C" fn raw_hid_receive_rs(data: *mut u8, length: u8) {
     unsafe {
         let actual_data = alloc::slice::from_raw_parts_mut(data, length as usize);
 
-        debug_log(&format!("got hid message: {:X}", actual_data[0]));
-
-        actual_data[1] = actual_data[0];
-
-        if actual_data[0] == 0x21 {
-            let (total, used, free) = heap::usage();
-
+        if !usb::check(actual_data) {
             debug_log(&format!(
-                "request for memory usage: total={total}, used={used}, free={free} ({}%)",
-                heap::usage_percentage()
+                "unhandled hid packet: {:X},{:X}",
+                actual_data[0], actual_data[1]
             ));
         }
     }
@@ -268,14 +210,10 @@ pub unsafe extern "C" fn process_record_user_rs(
     pressed: bool,
     _record: *const qmk_sys::keyrecord_t,
 ) -> bool {
-    unsafe {
-        if pressed && keycode == qmk_sys::qk_keycode_defines::KC_5 as u16 {
-            let state = state::get();
-            state.blue_index += 1;
-            sync_to_secondary(state);
-            return false;
-        }
-
-        true
+    if pressed && keycode == qmk_sys::qk_keycode_defines::KC_5 as u16 {
+        state::get().incr_blue().sync();
+        return false;
     }
+
+    true
 }

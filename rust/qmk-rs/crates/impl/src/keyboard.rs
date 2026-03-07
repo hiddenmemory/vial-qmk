@@ -57,7 +57,7 @@ impl Keyboard {
         !Self::is_primary()
     }
 
-    pub fn secondary_send<Request: Serialize, Response: Default + Serialize + DeserializeOwned>(
+    pub fn send<Request: Serialize, Response: Default + Serialize + DeserializeOwned>(
         channel: Channel,
         request: Request,
     ) -> Result<Response> {

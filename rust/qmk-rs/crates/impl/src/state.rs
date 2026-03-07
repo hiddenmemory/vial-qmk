@@ -1,4 +1,22 @@
-use crate::{Slime, image::Image, os::HostOS};
+use serde::{Deserialize, Serialize};
+
+use crate::{image::Image, os::HostOS, secondary};
+
+#[derive(Default, Eq, PartialEq, Copy, Clone, Debug, Serialize, Deserialize)]
+pub enum Slime {
+    Green,
+    #[default]
+    Orange,
+}
+
+impl Slime {
+    pub fn other(&self) -> Slime {
+        match self {
+            Slime::Green => Slime::Orange,
+            Slime::Orange => Slime::Green,
+        }
+    }
+}
 
 #[derive(Default)]
 pub struct State {
@@ -33,6 +51,20 @@ impl State {
             secondary_slime: Slime::Orange,
             blue_index: 0,
         }
+    }
+
+    pub fn incr_blue(&mut self) -> &mut State {
+        self.blue_index += 1;
+
+        if self.blue_index == qmk_sys::RGB_MATRIX_LED_COUNT as u8 {
+            self.blue_index = 0;
+        }
+
+        self
+    }
+
+    pub fn sync(&self) {
+        secondary::sync(self);
     }
 }
 

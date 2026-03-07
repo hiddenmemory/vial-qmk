@@ -1,0 +1,15 @@
+[package]
+name = "hid-bridge"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+default = ["std"]
+std    = ["serde/std"]
+no_std = ["serde/alloc"]
+
+[dependencies]
+# `default-features = false` strips out serde's implicit std dependency so we
+# can opt into either `serde/std` or `serde/alloc` via our own feature flags.
+# The `derive` feature is unconditional – macros are always available.
+serde = { version = "1", default-features = false, features = ["derive"] }
