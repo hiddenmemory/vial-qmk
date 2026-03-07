@@ -1,0 +1,12 @@
+[package]
+name = "qmk-remote"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+hidapi = { version = "2.6", features = ["macos-shared-device"] }
+clap = { version = "4", features = ["derive"] }
+anyhow = "1"
+hid-bridge = { path = "../shared/hid-bridge" }
+serde = { version = "1", features = ["derive"] }
+postcard = { version = "1.1.3", features = ["alloc"] }
