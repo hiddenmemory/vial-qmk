@@ -13,6 +13,7 @@ void keyboard_post_init_rs(void);
 void raw_hid_receive_rs(uint8_t *data, uint8_t length);
 void housekeeping_task_user_rs(void);
 void rgb_matrix_indicators_advanced_rs(uint8_t led_min, uint8_t led_max);
+bool process_record_user_rs(uint16_t keycode, bool pressed, keyrecord_t *record);
 
 void keyboard_post_init_kb(void) {
     debug_enable = true;
@@ -31,6 +32,13 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
 bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
     rgb_matrix_indicators_advanced_rs(led_min, led_max);
     return false;
+}
+
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    // For some reason, and it's too late for me to work out, but record->event.pressed
+    // isn't able to be correctly read over the rust side, so less pull it out as an
+    // official parameter
+    return process_record_user_rs(keycode, record->event.pressed, record);
 }
 
 const pin_t row_pins_left[MATRIX_ROWS/2]  = MATRIX_ROW_PINS;

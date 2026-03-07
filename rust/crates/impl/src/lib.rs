@@ -106,17 +106,11 @@ fn render_left(display: &mut Display, state: &mut State) {
 
 fn register_secondary_sync_handlers() {
     Keyboard::listen(keyboard::Channel::A, |request: Request| {
-        let success = if let Some(slime) = request.secondary_change_slime {
-            let state = state::get();
-            state.blue_index = request.blue_index;
-            state.secondary_slime_drawn = false;
-            state.secondary_slime = slime;
-            true
-        } else {
-            false
-        };
-
-        Response { success }
+        let state = state::get();
+        state.blue_index = request.blue_index;
+        state.secondary_slime_drawn = state.secondary_slime.eq(&request.secondary_change_slime);
+        state.secondary_slime = request.secondary_change_slime;
+        Response { success: true }
     });
 }
 
@@ -139,7 +133,7 @@ impl Slime {
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 struct Request {
     blue_index: u8,
-    secondary_change_slime: Option<Slime>,
+    secondary_change_slime: Slime,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
@@ -203,13 +197,15 @@ pub extern "C" fn housekeeping_task_user_rs() {
         state.blue_index = 0;
     }
 
-    debug_log(&format!("blue_index = {}", state.blue_index));
+    sync_to_secondary(state);
+}
 
+fn sync_to_secondary(state: &State) {
     let result: Result<Response, _> = Keyboard::secondary_send(
         keyboard::Channel::A,
         Request {
             blue_index: state.blue_index,
-            secondary_change_slime: Some(state.secondary_slime),
+            secondary_change_slime: state.secondary_slime,
         },
     );
 
@@ -219,20 +215,25 @@ pub extern "C" fn housekeeping_task_user_rs() {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn raw_hid_receive_rs(data: *mut u8, length: u8) {
-    let actual_data = unsafe { alloc::slice::from_raw_parts_mut(data, length as usize) };
+/// # Safety
+///
+/// This is safe
+pub unsafe extern "C" fn raw_hid_receive_rs(data: *mut u8, length: u8) {
+    unsafe {
+        let actual_data = alloc::slice::from_raw_parts_mut(data, length as usize);
 
-    debug_log(&format!("got hid message: {:X}", actual_data[0]));
+        debug_log(&format!("got hid message: {:X}", actual_data[0]));
 
-    actual_data[1] = actual_data[0];
+        actual_data[1] = actual_data[0];
 
-    if actual_data[0] == 0x21 {
-        let (total, used, free) = heap::usage();
+        if actual_data[0] == 0x21 {
+            let (total, used, free) = heap::usage();
 
-        debug_log(&format!(
-            "request for memory usage: total={total}, used={used}, free={free} ({}%)",
-            heap::usage_percentage()
-        ));
+            debug_log(&format!(
+                "request for memory usage: total={total}, used={used}, free={free} ({}%)",
+                heap::usage_percentage()
+            ));
+        }
     }
 }
 
@@ -255,5 +256,26 @@ pub extern "C" fn rgb_matrix_indicators_advanced_rs(min: u8, max: u8) {
                 _ => qmk_sys::rgb_matrix_set_color(offset as i32, value, value / 2, 0),
             }
         }
+    }
+}
+
+#[unsafe(no_mangle)]
+/// # Safety
+///
+/// This is safe
+pub unsafe extern "C" fn process_record_user_rs(
+    keycode: u16,
+    pressed: bool,
+    _record: *const qmk_sys::keyrecord_t,
+) -> bool {
+    unsafe {
+        if pressed && keycode == qmk_sys::qk_keycode_defines::KC_5 as u16 {
+            let state = state::get();
+            state.blue_index += 1;
+            sync_to_secondary(state);
+            return false;
+        }
+
+        true
     }
 }

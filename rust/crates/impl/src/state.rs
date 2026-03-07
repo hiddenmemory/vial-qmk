@@ -11,6 +11,9 @@ pub struct State {
     pub orange_slime: Option<Image>,
     pub primary_slime_drawn: bool,
     pub secondary_slime_drawn: bool,
+    // TODO this should be split into a shared state, and then we can just sync that
+    // when we make changes, perhaps we have a flag to say it requires sync, then housekeeping
+    // can push that change automatically to the other side
     pub secondary_slime: Slime,
     pub blue_index: u8,
 }
@@ -28,7 +31,7 @@ impl State {
             primary_slime_drawn: false,
             secondary_slime_drawn: false,
             secondary_slime: Slime::Orange,
-            blue_index: 0
+            blue_index: 0,
         }
     }
 }
