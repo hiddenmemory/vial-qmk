@@ -27,6 +27,7 @@ mod image;
 mod keyboard;
 mod keymap;
 mod os;
+mod primary;
 mod secondary;
 mod state;
 mod timer;
@@ -127,7 +128,7 @@ pub extern "C" fn keyboard_post_init_rs() {
     Display::set_brightness(Display::max_brightness() / 2);
 
     if Keyboard::is_primary() {
-        usb::initialise();
+        primary::initialise();
     } else {
         secondary::initialise();
     }
@@ -160,23 +161,6 @@ pub extern "C" fn housekeeping_task_user_rs() {
     state.incr_blue();
 
     secondary::sync(state);
-}
-
-#[unsafe(no_mangle)]
-/// # Safety
-///
-/// This is safe
-pub unsafe extern "C" fn raw_hid_receive_rs(data: *mut u8, length: u8) {
-    unsafe {
-        let actual_data = alloc::slice::from_raw_parts_mut(data, length as usize);
-
-        if !usb::check(actual_data) {
-            debug_log(&format!(
-                "unhandled hid packet: {:X},{:X}",
-                actual_data[0], actual_data[1]
-            ));
-        }
-    }
 }
 
 #[unsafe(no_mangle)]
