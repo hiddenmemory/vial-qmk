@@ -4,7 +4,7 @@ use crate::{
     display::Display,
     keyboard::Keyboard,
     keymap::KeyMap,
-    secondary,
+    rgb, secondary,
     state::{self, State},
     usb, widgets,
 };
@@ -34,11 +34,7 @@ pub fn initialise() {
         },
     );
 
-    usb::listen::<hid_bridge::Empty, hid_bridge::Empty, _>(MessageType::WakeDisplays, |_, _| {
-        crate::check_display_state_and_render();
-        Keyboard::trigger_fake_activity();
-        (Some(MessageType::Acknowledge), None)
-    });
+    rgb::initialise();
 }
 
 pub fn update(state: &mut State) {

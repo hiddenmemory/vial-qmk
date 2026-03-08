@@ -32,6 +32,8 @@ enum Command {
     DebugOff,
     QueryFrameTime,
     FrameTime { time: u32 },
+    QueryRgbHsv,
+    SetRgbHsv { h: u16, s: u8, v: u8 },
 }
 
 fn parse_id(s: &str) -> anyhow::Result<u16> {
@@ -121,6 +123,14 @@ fn main() -> anyhow::Result<()> {
         Command::FrameTime { time } => (
             MessageType::SetFrameTime,
             postcard::to_allocvec(&hid_bridge::U32Value { value: time })?,
+        ),
+        Command::QueryRgbHsv => (
+            MessageType::QueryRgbHsv,
+            postcard::to_allocvec(&hid_bridge::Empty {})?,
+        ),
+        Command::SetRgbHsv { h, s, v } => (
+            MessageType::SetRgbHsv,
+            postcard::to_allocvec(&hid_bridge::HsvValue { h, s, v })?,
         ),
     };
 

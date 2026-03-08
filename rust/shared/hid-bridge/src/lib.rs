@@ -45,6 +45,8 @@ pub enum MessageType {
     WakeDisplays,
     ToggleDebug,
     SetFrameTime,
+    QueryRgbHsv,
+    SetRgbHsv,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -81,6 +83,13 @@ pub struct BoolValue {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct U32Value {
     pub value: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct HsvValue {
+    pub h: u16,
+    pub s: u8,
+    pub v: u8,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

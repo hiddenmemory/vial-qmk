@@ -12,7 +12,7 @@ use crate::display::Display;
 use crate::image::Image;
 use crate::keyboard::{Keyboard, Role};
 use crate::keymap::KeyMap;
-use crate::state::{Slime, State};
+use crate::state::State;
 use crate::timer::Timer;
 use crate::utils::{HSV, debug_log};
 
@@ -24,6 +24,7 @@ mod keyboard;
 mod keymap;
 mod os;
 mod primary;
+mod rgb;
 mod secondary;
 mod state;
 mod sync;
@@ -76,9 +77,9 @@ fn run_loop() {
         qmk_sys::defer_exec(
             1000,
             Some(if Keyboard::is_primary() {
-                update_primary
+                run_loop_primary
             } else {
-                update_secondary
+                run_loop_secondary
             }),
             core::ptr::null_mut(),
         )
@@ -131,7 +132,7 @@ fn initialise_state(state: &mut State) {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn update_primary(_trigger_time: u32, _cb_arg: *mut core::ffi::c_void) -> u32 {
+pub extern "C" fn run_loop_primary(_trigger_time: u32, _cb_arg: *mut core::ffi::c_void) -> u32 {
     let displays_off = Keyboard::last_activity_elapsed() > qmk_sys::QUANTUM_PAINTER_DISPLAY_TIMEOUT;
 
     if displays_off {
@@ -144,7 +145,7 @@ pub extern "C" fn update_primary(_trigger_time: u32, _cb_arg: *mut core::ffi::c_
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn update_secondary(_trigger_time: u32, _cb_arg: *mut core::ffi::c_void) -> u32 {
+pub extern "C" fn run_loop_secondary(_trigger_time: u32, _cb_arg: *mut core::ffi::c_void) -> u32 {
     if !display::get().power_level.get().is_off() {
         render_frame();
     }
@@ -170,38 +171,6 @@ pub extern "C" fn housekeeping_task_user_rs() {
     state.incr_blue();
 
     secondary::sync(state);
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn rgb_matrix_indicators_advanced_rs(min: u8, max: u8) {
-    unsafe {
-        let state = state::get();
-        let display_off = display::get().power_level.get().is_off();
-        let value = 0x05;
-
-        let (red, green, blue): (u8, u8, u8) = if display_off {
-            (0x01, 0x01, 0x01)
-        } else if KeyMap::get_layer() == 0
-            && (matches!(Keyboard::role(), Role::Primary)
-                || matches!(state.secondary_slime, Slime::Green))
-        {
-            (0x0, value, 0x0)
-        } else {
-            (value, value / 2, 0x0)
-        };
-
-        let blue_index = state.blue_index.get();
-
-        for offset in min..=max {
-            let (red, green, blue) = if offset == blue_index {
-                (0x0, 0x0, value)
-            } else {
-                (red, green, blue)
-            };
-
-            qmk_sys::rgb_matrix_set_color(offset as i32, red, green, blue);
-        }
-    }
 }
 
 #[unsafe(no_mangle)]

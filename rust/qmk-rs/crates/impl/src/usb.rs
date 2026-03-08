@@ -22,6 +22,7 @@ pub fn initialise() {
     listeners::listen_for_toggle_debug();
     listeners::listen_for_set_frame_time();
     listeners::listen_for_heap_usage();
+    listeners::listen_for_wake();
 
     debug_log("[hid] initialised");
 }

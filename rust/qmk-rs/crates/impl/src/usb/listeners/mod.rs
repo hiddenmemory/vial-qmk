@@ -1,7 +1,7 @@
 use alloc::format;
 use hid_bridge::{BoolValue, Empty, MessageType, U32Value};
 
-use crate::{heap, state, utils::debug_log};
+use crate::{heap, keyboard::Keyboard, state, utils::debug_log};
 
 pub(crate) fn listen_for_heap_usage() {
     super::listen::<Empty, Empty, _>(MessageType::HeapUsage, |_, _| {
@@ -12,7 +12,7 @@ pub(crate) fn listen_for_heap_usage() {
             heap::usage_percentage()
         ));
 
-        (None, None)
+        (Some(MessageType::Acknowledge), None)
     });
 }
 
@@ -44,6 +44,14 @@ pub(crate) fn listen_for_toggle_debug() {
 
 pub(crate) fn listen_for_ping() {
     super::listen::<Empty, Empty, _>(MessageType::Ping, |_, _| {
+        (Some(MessageType::Acknowledge), None)
+    });
+}
+
+pub(crate) fn listen_for_wake() {
+    super::listen::<hid_bridge::Empty, hid_bridge::Empty, _>(MessageType::WakeDisplays, |_, _| {
+        crate::check_display_state_and_render();
+        Keyboard::trigger_fake_activity();
         (Some(MessageType::Acknowledge), None)
     });
 }
