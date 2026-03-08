@@ -4,8 +4,8 @@ use alloc::vec::Vec;
 use crate::{
     font::Font,
     keyboard::Keyboard,
-    sync::{SyncKey, Syncing},
-    utils::{ChangeableValue, HSV, Point, Rect, Size, debug_log},
+    sync::{SyncKey, SyncValue},
+    utils::{HSV, Point, Rect, Size, TrackValue, debug_log},
 };
 
 static mut DISPLAY: Option<Display> = None;
@@ -55,10 +55,10 @@ impl Default for PowerLevel {
 
 pub struct Display {
     pub bounds: Rect,
-    pub clear_colour: ChangeableValue<HSV>,
-    pub accent_colour: ChangeableValue<HSV>,
+    pub clear_colour: TrackValue<HSV>,
+    pub accent_colour: TrackValue<HSV>,
     pub device: qmk_sys::painter_device_t,
-    pub power_level: Syncing<PowerLevel>,
+    pub power_level: SyncValue<PowerLevel>,
     #[allow(dead_code)]
     device_buffer: Vec<u8>,
     actual_device: qmk_sys::painter_device_t,
@@ -117,10 +117,10 @@ impl Display {
                     height: panel_height,
                 },
             },
-            clear_colour: ChangeableValue::new(HSV::black()),
-            accent_colour: ChangeableValue::new(HSV::papaya()),
+            clear_colour: TrackValue::new(HSV::black()),
+            accent_colour: TrackValue::new(HSV::papaya()),
             device,
-            power_level: Syncing::new(SyncKey::DisplayPowerLevel, Default::default()),
+            power_level: SyncValue::new(SyncKey::DisplayPowerLevel, Default::default()),
             device_buffer,
             actual_device,
             small_font,

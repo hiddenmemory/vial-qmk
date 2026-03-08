@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     image::Image,
-    sync::{SyncKey, Syncing},
-    utils::ChangeableValue,
+    sync::{SyncKey, SyncValue},
+    utils::TrackValue,
     widgets::{self, WidgetState},
 };
 
@@ -32,15 +32,15 @@ pub struct State {
     pub widget_secondary_image: WidgetState<widgets::image::State>,
     pub deferred_token: u8,
     pub last_sync: u32,
-    pub last_clock: ChangeableValue<u32>,
+    pub last_clock: TrackValue<u32>,
     pub green_slime: Option<Image>,
     pub orange_slime: Option<Image>,
     // TODO this should be split into a shared state, and then we can just sync that
     // when we make changes, perhaps we have a flag to say it requires sync, then housekeeping
     // can push that change automatically to the other side
     pub secondary_slime: Slime,
-    pub blue_index: Syncing<u8>,
-    pub frame_time: Syncing<u32>,
+    pub blue_index: SyncValue<u8>,
+    pub frame_time: SyncValue<u32>,
 }
 
 impl State {
@@ -54,12 +54,12 @@ impl State {
             widget_secondary_image: widgets::image::initial(),
             deferred_token: 0,
             last_sync: 0,
-            last_clock: ChangeableValue::new(0),
+            last_clock: TrackValue::new(0),
             green_slime: None,
             orange_slime: None,
             secondary_slime: Slime::Orange,
-            blue_index: Syncing::new(SyncKey::BlueDot, 0),
-            frame_time: Syncing::new(SyncKey::FrameTime, 32),
+            blue_index: SyncValue::new(SyncKey::BlueDot, 0),
+            frame_time: SyncValue::new(SyncKey::FrameTime, 32),
         }
     }
 

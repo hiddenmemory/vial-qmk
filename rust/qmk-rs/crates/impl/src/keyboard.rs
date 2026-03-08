@@ -15,7 +15,7 @@ pub enum Role {
 #[derive(Copy, Clone, Hash, Eq, PartialEq)]
 pub enum Channel {
     A,
-    Sync,
+    AutoSync,
     C,
     D,
     E,
@@ -139,7 +139,7 @@ impl Channel {
     pub fn index(&self) -> usize {
         match self {
             Channel::A => 0,
-            Channel::Sync => 1,
+            Channel::AutoSync => 1,
             Channel::C => 2,
             Channel::D => 3,
             Channel::E => 4,
@@ -150,7 +150,7 @@ impl Channel {
     pub fn to_qmk_id(self) -> i8 {
         match self {
             Channel::A => qmk_sys::serial_transaction_id::USER_CHANNEL_A as i8,
-            Channel::Sync => qmk_sys::serial_transaction_id::USER_CHANNEL_B as i8,
+            Channel::AutoSync => qmk_sys::serial_transaction_id::USER_CHANNEL_B as i8,
             Channel::C => qmk_sys::serial_transaction_id::USER_CHANNEL_C as i8,
             Channel::D => qmk_sys::serial_transaction_id::USER_CHANNEL_D as i8,
             Channel::E => qmk_sys::serial_transaction_id::USER_CHANNEL_E as i8,
@@ -199,7 +199,7 @@ macro_rules! bridge_for {
 }
 
 bridge_for!(bridge_a => Channel::A);
-bridge_for!(bridge_sync => Channel::Sync);
+bridge_for!(bridge_sync => Channel::AutoSync);
 bridge_for!(bridge_c => Channel::C);
 bridge_for!(bridge_d => Channel::D);
 bridge_for!(bridge_e => Channel::E);
@@ -235,7 +235,7 @@ pub fn listen<
             channel.to_qmk_id(),
             Some(match channel {
                 Channel::A => bridge_a,
-                Channel::Sync => bridge_sync,
+                Channel::AutoSync => bridge_sync,
                 Channel::C => bridge_c,
                 Channel::D => bridge_d,
                 Channel::E => bridge_e,

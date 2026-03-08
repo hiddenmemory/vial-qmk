@@ -1,4 +1,4 @@
-use crate::sync::{SyncableValue, Syncing};
+use crate::sync::{SyncValue, SyncableValue};
 
 impl SyncableValue for u8 {
     fn from_wire(buf: &[u8]) -> anyhow::Result<Self> {
@@ -11,7 +11,7 @@ impl SyncableValue for u8 {
     }
 }
 
-impl Syncing<u8> {
+impl SyncValue<u8> {
     pub fn incr_mod(&mut self, modulo: Option<u8>) {
         self.set(self.get().wrapping_add(1) % modulo.unwrap_or(255));
     }

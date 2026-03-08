@@ -40,13 +40,13 @@ pub trait SyncableValue: Copy + Clone + core::fmt::Debug + Eq + 'static {
 pub mod syncing;
 
 #[derive(Debug)]
-pub struct Syncing<Inner: SyncableValue> {
+pub struct SyncValue<Inner: SyncableValue> {
     key: SyncKey,
     inner: Rc<RwLock<Inner>>,
 }
 
-impl<Inner: SyncableValue> Syncing<Inner> {
-    pub fn new(key: SyncKey, value: Inner) -> Syncing<Inner> {
+impl<Inner: SyncableValue> SyncValue<Inner> {
+    pub fn new(key: SyncKey, value: Inner) -> SyncValue<Inner> {
         let inner = Rc::new(RwLock::new(value));
 
         if Keyboard::is_secondary() {
@@ -59,7 +59,7 @@ impl<Inner: SyncableValue> Syncing<Inner> {
             });
         }
 
-        Syncing { key, inner }
+        SyncValue { key, inner }
     }
 
     pub fn set(&mut self, value: Inner) -> Inner {
@@ -98,13 +98,13 @@ pub fn initialise() {
             SYNC_HANDLERS = Some(Vec::with_capacity(16));
         }
 
-        bridges()[Channel::Sync.index()].replace(Box::new(sync_bridge));
+        bridges()[Channel::AutoSync.index()].replace(Box::new(auto_sync_bridge));
     }
 
     debug_log("[sync] initialised");
 }
 
-fn sync_bridge(
+fn auto_sync_bridge(
     in_len: u8,
     in_data: *const core::ffi::c_void,
     out_len: u8,
@@ -193,7 +193,7 @@ where
     handlers.push((key, Some(outer_f)));
 
     unsafe {
-        qmk_sys::transaction_register_rpc(Channel::Sync.to_qmk_id(), Some(bridge_sync));
+        qmk_sys::transaction_register_rpc(Channel::AutoSync.to_qmk_id(), Some(bridge_sync));
     }
 }
 
@@ -215,7 +215,7 @@ fn send<Type: SyncableValue>(key: SyncKey, value: Type) -> anyhow::Result<()> {
 
     let result = unsafe {
         qmk_sys::transaction_rpc_exec(
-            Channel::Sync.to_qmk_id(),
+            Channel::AutoSync.to_qmk_id(),
             outgoing_buffer.len() as u8,
             outgoing_buffer.as_ptr() as *const core::ffi::c_void,
             incoming_buffer.len() as u8,

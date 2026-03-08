@@ -172,14 +172,14 @@ impl Rect {
     }
 }
 
-pub struct ChangeableValue<Value: Eq> {
+pub struct TrackValue<Value: Eq> {
     value: Value,
     has_changed: bool,
 }
 
-impl<Value: Eq> ChangeableValue<Value> {
-    pub fn new(value: Value) -> ChangeableValue<Value> {
-        ChangeableValue {
+impl<Value: Eq> TrackValue<Value> {
+    pub fn new(value: Value) -> TrackValue<Value> {
+        TrackValue {
             value,
             has_changed: true,
         }
@@ -204,7 +204,7 @@ impl<Value: Eq> ChangeableValue<Value> {
     }
 }
 
-impl<Value: Eq> core::ops::Deref for ChangeableValue<Value> {
+impl<Value: Eq> core::ops::Deref for TrackValue<Value> {
     type Target = Value;
 
     fn deref(&self) -> &Self::Target {
@@ -212,7 +212,7 @@ impl<Value: Eq> core::ops::Deref for ChangeableValue<Value> {
     }
 }
 
-impl<Value: Eq> core::ops::DerefMut for ChangeableValue<Value> {
+impl<Value: Eq> core::ops::DerefMut for TrackValue<Value> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.value
     }
