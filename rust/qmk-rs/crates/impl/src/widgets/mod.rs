@@ -10,6 +10,7 @@ pub mod clock;
 pub mod image;
 pub mod layer;
 pub mod os;
+pub mod progress;
 
 #[derive(Debug, Default)]
 pub struct WidgetState<Inner: Default + core::fmt::Debug> {
