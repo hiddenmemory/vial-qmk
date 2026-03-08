@@ -33,6 +33,7 @@ use serde::{Deserialize, Serialize};
 
 pub const QMK_RS_CHANNEL: u8 = 0x42;
 pub const QMK_RS_CHANNEL_LENGTH: usize = 4;
+pub const QMK_RS_HEADER_LENGTH: usize = 5;
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
