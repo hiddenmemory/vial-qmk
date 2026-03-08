@@ -205,6 +205,7 @@ bridge_for!(bridge_d => Channel::D);
 bridge_for!(bridge_e => Channel::E);
 bridge_for!(bridge_f => Channel::F);
 
+#[allow(dead_code)]
 pub fn listen<
     'a,
     Request: Deserialize<'a> + 'static,

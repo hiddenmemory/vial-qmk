@@ -167,10 +167,12 @@ pub extern "C" fn housekeeping_task_user_rs() {
     }
 
     state.last_sync = Timer::read();
-    state.secondary_slime = state.secondary_slime.other();
-    state.incr_blue();
 
-    secondary::sync(state);
+    state
+        .secondary_slime
+        .set(state.secondary_slime.get().other());
+
+    state.incr_blue();
 }
 
 #[unsafe(no_mangle)]

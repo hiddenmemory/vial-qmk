@@ -2,8 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     image::Image,
-    sync::{SyncKey, SyncValue},
-    utils::TrackValue,
+    sync::{SyncKey, SyncValue, syncing::impl_serde::MakeSyncableValue},
     widgets::{self, WidgetState},
 };
 
@@ -13,6 +12,8 @@ pub enum Slime {
     #[default]
     Orange,
 }
+
+impl MakeSyncableValue for Slime {}
 
 impl Slime {
     pub fn other(&self) -> Slime {
@@ -32,13 +33,13 @@ pub struct State {
     pub widget_secondary_image: WidgetState<widgets::image::State>,
     pub deferred_token: u8,
     pub last_sync: u32,
-    pub last_clock: TrackValue<u32>,
+    pub seconds_since_midnight: SyncValue<u32>,
     pub green_slime: Option<Image>,
     pub orange_slime: Option<Image>,
     // TODO this should be split into a shared state, and then we can just sync that
     // when we make changes, perhaps we have a flag to say it requires sync, then housekeeping
     // can push that change automatically to the other side
-    pub secondary_slime: Slime,
+    pub secondary_slime: SyncValue<Slime>,
     pub blue_index: SyncValue<u8>,
     pub frame_time: SyncValue<u32>,
 }
@@ -54,10 +55,21 @@ impl State {
             widget_secondary_image: widgets::image::initial(),
             deferred_token: 0,
             last_sync: 0,
-            last_clock: TrackValue::new(0),
+            seconds_since_midnight: SyncValue::with_fn(SyncKey::Clock, 0, |value| {
+                get().widget_clock.set_seconds(value);
+            }),
             green_slime: None,
             orange_slime: None,
-            secondary_slime: Slime::Orange,
+            secondary_slime: SyncValue::with_fn(SyncKey::SecondarySlime, Slime::Orange, |slime| {
+                let state = get();
+
+                let image = match slime {
+                    Slime::Green => &state.green_slime,
+                    Slime::Orange => &state.orange_slime,
+                };
+
+                state.widget_secondary_image.set_image(image);
+            }),
             blue_index: SyncValue::new(SyncKey::BlueDot, 0),
             frame_time: SyncValue::new(SyncKey::FrameTime, 32),
         }

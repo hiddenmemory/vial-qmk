@@ -4,7 +4,7 @@ use crate::{
     display::Display,
     keyboard::Keyboard,
     keymap::KeyMap,
-    rgb, secondary,
+    rgb,
     state::{self, State},
     usb, widgets,
 };
@@ -25,10 +25,8 @@ pub fn initialise() {
                 seconds_since_midnight,
             }) = request
             {
-                state.last_clock.set(seconds_since_midnight);
+                state.seconds_since_midnight.set(seconds_since_midnight);
             }
-
-            secondary::sync(state);
 
             (Some(MessageType::Acknowledge), None)
         },

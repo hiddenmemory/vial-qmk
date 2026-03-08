@@ -14,9 +14,10 @@ pub enum SyncKey {
     Succeeded,
     Failed,
     BlueDot,
-    ClockSeconds,
+    Clock,
     DisplayPowerLevel,
     FrameTime,
+    SecondarySlime,
 }
 
 const MAGIC: u8 = 0x07;
@@ -55,6 +56,28 @@ impl<Inner: SyncableValue> SyncValue<Inner> {
             listen(key, move |value: Inner| {
                 let mut lock = clone.write();
                 *lock = value;
+                Ok(())
+            });
+        }
+
+        SyncValue { key, inner }
+    }
+
+    pub fn with_fn<F>(key: SyncKey, value: Inner, f: F) -> SyncValue<Inner>
+    where
+        F: Fn(Inner) + 'static,
+    {
+        let inner = Rc::new(RwLock::new(value));
+
+        if Keyboard::is_secondary() {
+            let clone = inner.clone();
+
+            listen(key, move |value: Inner| {
+                {
+                    let mut lock = clone.write();
+                    *lock = value;
+                }
+                f(value);
                 Ok(())
             });
         }

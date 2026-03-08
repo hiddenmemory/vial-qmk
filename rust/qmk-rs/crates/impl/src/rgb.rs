@@ -71,7 +71,7 @@ pub extern "C" fn rgb_matrix_indicators_advanced_rs(min: u8, max: u8) {
             (0x01, 0x01, 0x01)
         } else if KeyMap::get_layer() == 0
             && (matches!(Keyboard::role(), Role::Primary)
-                || matches!(state.secondary_slime, Slime::Green))
+                || matches!(state.secondary_slime.get(), Slime::Green))
         {
             (0x0, value, 0x0)
         } else {
