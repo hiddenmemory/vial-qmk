@@ -59,6 +59,24 @@ impl Keyboard {
         !Self::is_primary()
     }
 
+    pub fn trigger_fake_activity() {
+        unsafe {
+            unsafe extern "C" {
+                pub fn last_matrix_activity_trigger() -> bool;
+            }
+
+            last_matrix_activity_trigger();
+        }
+    }
+
+    pub fn last_activity() -> u32 {
+        unsafe { qmk_sys::last_input_activity_time() }
+    }
+
+    pub fn last_activity_elapsed() -> u32 {
+        unsafe { qmk_sys::last_input_activity_elapsed() }
+    }
+
     pub fn send<Request: Serialize, Response: Default + Serialize + DeserializeOwned>(
         channel: Channel,
         request: Request,

@@ -24,7 +24,6 @@ impl Slime {
 }
 
 pub struct State {
-    pub backlight_level: Option<u8>,
     pub widget_os: WidgetState<widgets::os::State>,
     pub widget_layer: WidgetState<widgets::layer::State>,
     pub widget_primary_image: WidgetState<widgets::image::State>,
@@ -45,7 +44,6 @@ pub struct State {
 impl State {
     pub fn new() -> State {
         State {
-            backlight_level: None,
             widget_os: widgets::os::initial(),
             widget_layer: Default::default(),
             widget_primary_image: widgets::image::initial(),

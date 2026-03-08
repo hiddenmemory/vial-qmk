@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use hid_bridge::MessageType;
 use hidapi::HidApi;
 use std::time::Duration;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -25,6 +26,7 @@ struct Arguments {
 #[derive(Subcommand, Debug)]
 enum Command {
     Time,
+    Wake,
 }
 
 fn parse_id(s: &str) -> anyhow::Result<u16> {
@@ -84,53 +86,55 @@ fn main() -> anyhow::Result<()> {
 
     let device = info.open_device(&api)?;
 
-    match arguments.command {
-        Command::Time => {
-            let seconds_since_midnight = seconds_since_midnight();
+    let (message_type, body) = match arguments.command {
+        Command::Time => (
+            MessageType::DateTime,
+            postcard::to_allocvec(&hid_bridge::DateTime {
+                seconds_since_midnight: seconds_since_midnight(),
+            })?,
+        ),
+        Command::Wake => (
+            MessageType::WakeDisplays,
+            postcard::to_allocvec(&hid_bridge::Empty {})?,
+        ),
+    };
 
-            println!("building body for {seconds_since_midnight}");
-            let body = postcard::to_allocvec(&hid_bridge::DateTime {
-                seconds_since_midnight,
-            })?;
+    println!("building header for {message_type:?}");
+    let header = postcard::to_allocvec(&hid_bridge::MessageHeader::new(
+        message_type,
+        body.len() as u8,
+    ))?;
 
-            println!("building header for {seconds_since_midnight}");
-            let header = postcard::to_allocvec(&hid_bridge::MessageHeader::new(
-                hid_bridge::MessageType::DateTime,
-                body.len() as u8,
-            ))?;
+    println!(
+        "building packet for {message_type:?} (header = {}, body = {})",
+        header.len(),
+        body.len()
+    );
 
-            println!(
-                "building packet for {seconds_since_midnight} (header = {}, body = {})",
-                header.len(),
-                body.len()
-            );
+    let mut payload = vec![0u8; 32];
 
-            let mut payload = vec![0u8; 32];
+    println!("payload length = {}", payload.len());
+    payload[0..5].copy_from_slice(&header[..]);
+    payload[5..body.len() + 5].copy_from_slice(&body[..]);
 
-            println!("payload length = {}", payload.len());
-            payload[0..5].copy_from_slice(&header[..]);
-            payload[5..body.len() + 5].copy_from_slice(&body[..]);
+    print_packet("→ outgoing", &payload);
 
-            print_packet("→ outgoing", &payload);
+    match device.write(&payload) {
+        Ok(n) => println!(
+            "→ packet of size {} sent ({n} bytes written)",
+            5 + body.len()
+        ),
+        Err(e) => eprintln!("  write error: {e}"),
+    }
 
-            match device.write(&payload) {
-                Ok(n) => println!(
-                    "→ packet of size {} sent ({n} bytes written)",
-                    5 + body.len()
-                ),
-                Err(e) => eprintln!("  write error: {e}"),
-            }
+    std::thread::sleep(Duration::from_millis(10));
 
-            std::thread::sleep(Duration::from_millis(10));
+    let timeout_ms = 500;
 
-            let timeout_ms = 500;
-
-            match device.read_timeout(&mut payload, timeout_ms) {
-                Ok(0) => println!("  (no reply within {timeout_ms}ms)"),
-                Ok(n) => print_packet("← received", &payload[..n]),
-                Err(e) => eprintln!("  read error: {e}"),
-            }
-        }
+    match device.read_timeout(&mut payload, timeout_ms) {
+        Ok(0) => println!("  (no reply within {timeout_ms}ms)"),
+        Ok(n) => print_packet("← received", &payload[..n]),
+        Err(e) => eprintln!("  read error: {e}"),
     }
 
     Ok(())

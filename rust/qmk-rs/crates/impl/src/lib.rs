@@ -5,6 +5,7 @@
 extern crate alloc;
 extern crate core;
 
+use alloc::format;
 #[cfg(target_arch = "arm")]
 use rp2040_panic_usb_boot as _;
 
@@ -34,6 +35,12 @@ mod widgets;
 fn first_render(display: &mut Display, state: &mut State) {
     display.clear();
     render(display, state);
+}
+
+fn render_frame() {
+    let state = state::get();
+    update_state(state);
+    render(display::get(), state);
 }
 
 fn update_state(state: &mut State) {
@@ -74,18 +81,18 @@ pub extern "C" fn keyboard_post_init_rs() {
     heap::initialise();
 
     debug_log("initialising the display");
-    display::initialise();
+    let display = display::initialise();
 
     debug_log("setting display brightness");
-    Display::set_brightness(Display::max_brightness() / 3);
+    display.set_brightness(Display::max_brightness() / 2);
 
     debug_log("setting up initial state");
     let state = state::initialise(initialise_state);
 
     debug_log("applying first render");
     update_state(state);
-    layout(display::get(), state);
-    first_render(display::get(), state);
+    layout(display, state);
+    first_render(display, state);
 
     debug_log("setting up side specific configuration");
     if Keyboard::is_primary() {
@@ -115,10 +122,18 @@ fn initialise_state(state: &mut State) {
 
 #[unsafe(no_mangle)]
 pub extern "C" fn update(_trigger_time: u32, _cb_arg: *mut core::ffi::c_void) -> u32 {
-    let state = state::get();
+    let displays_off = Keyboard::last_activity_elapsed() > qmk_sys::QUANTUM_PAINTER_DISPLAY_TIMEOUT;
 
-    update_state(state);
-    render(display::get(), state);
+    if displays_off {
+        debug_log(&format!(
+            "display off, not rendering: {} > {}",
+            Keyboard::last_activity_elapsed(),
+            qmk_sys::QUANTUM_PAINTER_DISPLAY_TIMEOUT
+        ));
+        display::get().assume_off();
+    } else {
+        render_frame();
+    }
 
     32 // ms
 }
@@ -147,20 +162,28 @@ pub extern "C" fn housekeeping_task_user_rs() {
 pub extern "C" fn rgb_matrix_indicators_advanced_rs(min: u8, max: u8) {
     unsafe {
         let state = state::get();
+        let display_off = display::get().backlight_level.is_off();
         let value = 0x05;
 
+        let (red, green, blue): (u8, u8, u8) = if display_off {
+            (0x01, 0x01, 0x01)
+        } else if KeyMap::get_layer() == 0
+            && (matches!(Keyboard::role(), Role::Primary)
+                || matches!(state.secondary_slime, Slime::Green))
+        {
+            (0x0, value, 0x0)
+        } else {
+            (value, value / 2, 0x0)
+        };
+
         for offset in min..=max {
-            match KeyMap::get_layer() {
-                _ if offset == state.blue_index => {
-                    qmk_sys::rgb_matrix_set_color(offset as i32, 0x00, value, value)
-                }
-                0 if matches!(Keyboard::role(), Role::Primary)
-                    || matches!(state.secondary_slime, Slime::Green) =>
-                {
-                    qmk_sys::rgb_matrix_set_color(offset as i32, 0x00, value, 0x00)
-                }
-                _ => qmk_sys::rgb_matrix_set_color(offset as i32, value, value / 2, 0),
-            }
+            let (red, green, blue) = if offset == state.blue_index {
+                (0x0, 0x0, value)
+            } else {
+                (red, green, blue)
+            };
+
+            qmk_sys::rgb_matrix_set_color(offset as i32, red, green, blue);
         }
     }
 }
@@ -174,10 +197,30 @@ pub unsafe extern "C" fn process_record_user_rs(
     pressed: bool,
     _record: *const qmk_sys::keyrecord_t,
 ) -> bool {
+    check_display_state_and_render();
+
     if pressed && keycode == qmk_sys::qk_keycode_defines::KC_5 as u16 {
         state::get().incr_blue().sync();
         return false;
     }
 
     true
+}
+
+pub fn check_display_state_and_render() {
+    let should_render_frame = {
+        let display = display::get();
+
+        if display.backlight_level.is_off() {
+            display::get().assume_on();
+            true
+        } else {
+            false
+        }
+    };
+
+    if should_render_frame {
+        debug_log("forcing frame render");
+        render_frame();
+    }
 }

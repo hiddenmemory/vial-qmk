@@ -21,7 +21,10 @@ pub fn initialise() {
         |_, request: Option<hid_bridge::DateTime>| {
             let state = state::get();
 
-            if let Some(hid_bridge::DateTime{ seconds_since_midnight })  = request {
+            if let Some(hid_bridge::DateTime {
+                seconds_since_midnight,
+            }) = request
+            {
                 state.last_clock.set(seconds_since_midnight);
             }
 
@@ -29,7 +32,13 @@ pub fn initialise() {
 
             (Some(MessageType::Acknowledge), None)
         },
-    )
+    );
+
+    usb::listen::<hid_bridge::Empty, hid_bridge::Empty, _>(MessageType::WakeDisplays, |_, _| {
+        crate::check_display_state_and_render();
+        Keyboard::trigger_fake_activity();
+        (Some(MessageType::Acknowledge), None)
+    });
 }
 
 pub fn update(state: &mut State) {

@@ -29,11 +29,6 @@ compile_error!("hid-bridge: the `std` and `no_std` features are mutually exclusi
 #[cfg(feature = "no_std")]
 extern crate alloc;
 
-// Bring `String` into scope from whichever allocator is active.
-// In `std` mode it comes from the prelude; no import is needed there.
-#[cfg(feature = "no_std")]
-use alloc::string::String;
-
 use serde::{Deserialize, Serialize};
 
 pub const QMK_RS_CHANNEL: u8 = 0x42;
@@ -46,6 +41,7 @@ pub enum MessageType {
     Acknowledge,
     HeapUsage,
     DateTime,
+    WakeDisplays,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

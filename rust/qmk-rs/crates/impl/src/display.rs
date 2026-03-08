@@ -3,6 +3,7 @@ use alloc::vec::Vec;
 
 use crate::{
     font::Font,
+    keyboard::Keyboard,
     utils::{ChangeableValue, HSV, Point, Rect, Size, debug_log},
 };
 
@@ -15,12 +16,39 @@ pub fn get() -> &'static mut Display {
     }
 }
 
-pub fn initialise() {
+pub fn initialise() -> &'static mut Display {
     unsafe {
         debug_log("bringing up display");
 
         #[allow(static_mut_refs)]
         DISPLAY.replace(Display::new());
+    }
+
+    get()
+}
+
+#[derive(Copy, Clone)]
+pub enum PowerLevel {
+    On(u8),
+    Off(u8),
+}
+
+impl PowerLevel {
+    pub fn is_off(&self) -> bool {
+        matches!(self, PowerLevel::Off(_))
+    }
+
+    pub fn level(&self) -> u8 {
+        match self {
+            PowerLevel::On(level) => *level,
+            PowerLevel::Off(level) => *level,
+        }
+    }
+}
+
+impl Default for PowerLevel {
+    fn default() -> Self {
+        Self::Off(0)
     }
 }
 
@@ -29,6 +57,7 @@ pub struct Display {
     pub clear_colour: ChangeableValue<HSV>,
     pub accent_colour: ChangeableValue<HSV>,
     pub device: qmk_sys::painter_device_t,
+    pub backlight_level: PowerLevel,
     #[allow(dead_code)]
     device_buffer: Vec<u8>,
     actual_device: qmk_sys::painter_device_t,
@@ -90,6 +119,7 @@ impl Display {
             clear_colour: ChangeableValue::new(HSV::black()),
             accent_colour: ChangeableValue::new(HSV::papaya()),
             device,
+            backlight_level: Default::default(),
             device_buffer,
             actual_device,
             small_font,
@@ -106,15 +136,46 @@ impl Display {
         qmk_sys::BACKLIGHT_LEVELS as u8
     }
 
-    pub fn set_brightness(level: u8) -> u8 {
+    pub fn assume_off(&mut self) {
+        self.backlight_level = match self.backlight_level {
+            PowerLevel::On(level) => PowerLevel::Off(level),
+            level => level,
+        };
+
         unsafe {
-            let existing = Self::get_brightness();
-            qmk_sys::backlight_level_noeeprom(level.min(Self::max_brightness()));
-            existing
+            qmk_sys::backlight_level_noeeprom(0);
         }
     }
 
-    pub fn get_brightness() -> u8 {
+    pub fn assume_on(&mut self) {
+        self.backlight_level = match self.backlight_level {
+            PowerLevel::Off(level) => PowerLevel::On(level),
+            level => level,
+        };
+
+        unsafe {
+            qmk_sys::backlight_level_noeeprom(self.backlight_level.level());
+        }
+    }
+
+    pub fn set_brightness(&mut self, level: u8) -> u8 {
+        unsafe {
+            if self.backlight_level.is_off() && level > 0 {
+                Keyboard::trigger_fake_activity();
+            }
+
+            let actual_level = level.min(Self::max_brightness());
+            self.backlight_level = PowerLevel::On(actual_level);
+            qmk_sys::backlight_level_noeeprom(actual_level);
+            actual_level
+        }
+    }
+
+    pub fn get_brightness(&self) -> u8 {
+        self.backlight_level.level()
+    }
+
+    pub fn read_brightness(&self) -> u8 {
         unsafe { qmk_sys::get_backlight_level() }
     }
 
