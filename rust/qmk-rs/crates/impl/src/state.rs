@@ -1,10 +1,14 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    display::Display,
     image::Image,
     sync::{SyncKey, SyncValue, syncing::impl_serde::MakeSyncableValue},
+    tween::{Tween, TweenDirection},
     widgets::{self, WidgetState},
 };
+
+pub const RUN_LOOP_START_DELAY: u32 = 1000;
 
 #[derive(Default, Eq, PartialEq, Copy, Clone, Debug, Serialize, Deserialize)]
 pub enum Slime {
@@ -42,6 +46,8 @@ pub struct State {
     pub secondary_slime: SyncValue<Slime>,
     pub blue_index: SyncValue<u8>,
     pub frame_time: SyncValue<u32>,
+    pub screen_fade_in: Tween<u8>,
+    pub screen_fade_out: Tween<u8>,
 }
 
 impl State {
@@ -72,12 +78,20 @@ impl State {
             }),
             blue_index: SyncValue::new(SyncKey::BlueDot, 0),
             frame_time: SyncValue::new(SyncKey::FrameTime, 32),
+            screen_fade_in: Tween::new(0, Display::max_brightness() / 2, 500)
+                .delay(RUN_LOOP_START_DELAY),
+            screen_fade_out: Tween::new(0, Display::max_brightness() / 2, 500)
+                .direction(TweenDirection::Backwards),
         }
     }
 
     pub fn incr_blue(&mut self) {
         self.blue_index
             .incr_mod(Some(qmk_sys::RGB_MATRIX_LED_COUNT as u8));
+    }
+
+    pub fn reset_screen_fade(&mut self) {
+        self.screen_fade_in.reset();
     }
 }
 

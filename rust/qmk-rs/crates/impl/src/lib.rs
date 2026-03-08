@@ -12,7 +12,7 @@ use crate::display::Display;
 use crate::image::Image;
 use crate::keyboard::{Keyboard, Role};
 use crate::keymap::KeyMap;
-use crate::state::State;
+use crate::state::{RUN_LOOP_START_DELAY, State};
 use crate::timer::Timer;
 use crate::utils::{HSV, debug_log};
 
@@ -29,6 +29,7 @@ mod secondary;
 mod state;
 mod sync;
 mod timer;
+mod tween;
 mod usb;
 mod utils;
 mod widgets;
@@ -40,8 +41,10 @@ fn first_render(display: &mut Display, state: &mut State) {
 
 fn render_frame() {
     let state = state::get();
+    let display = display::get();
+
     update_state(state);
-    render(display::get(), state);
+    render(display, state);
 }
 
 fn update_state(state: &mut State) {
@@ -75,7 +78,7 @@ fn render(display: &mut Display, state: &mut State) {
 fn run_loop() {
     state::get().deferred_token = unsafe {
         qmk_sys::defer_exec(
-            1000,
+            RUN_LOOP_START_DELAY,
             Some(if Keyboard::is_primary() {
                 run_loop_primary
             } else {
@@ -95,7 +98,7 @@ pub extern "C" fn keyboard_post_init_rs() {
     let display = display::initialise();
 
     debug_log("setting display brightness");
-    display.set_brightness(Display::max_brightness() / 2);
+    display.set_brightness(0);
 
     debug_log("setting up initial state");
     let state = state::initialise(initialise_state);
@@ -114,6 +117,8 @@ pub extern "C" fn keyboard_post_init_rs() {
 
     debug_log("beginning run loop");
     run_loop();
+
+    display.set_brightness(0);
 }
 
 fn initialise_state(state: &mut State) {
@@ -199,6 +204,7 @@ pub fn check_display_state_and_render() {
         let display = display::get();
 
         if display.power_level.get().is_off() {
+            state::get().reset_screen_fade();
             display::get().assume_on();
             true
         } else {

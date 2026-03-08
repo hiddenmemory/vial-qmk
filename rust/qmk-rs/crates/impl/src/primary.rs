@@ -1,7 +1,7 @@
 use hid_bridge::MessageType;
 
 use crate::{
-    display::Display,
+    display::{self, Display},
     keyboard::Keyboard,
     keymap::KeyMap,
     rgb,
@@ -39,6 +39,37 @@ pub fn update(state: &mut State) {
     state.widget_os.update(widgets::os::update);
     state.widget_layer.update(widgets::layer::update);
     update_image(state);
+
+    check_screen_fades(state);
+}
+
+fn check_screen_fades(state: &mut State) {
+    let display = display::get();
+
+    if !state.screen_fade_in.finished() {
+        let potential = display.get_brightness().max(state.screen_fade_in.next());
+
+        if display.get_brightness() != potential {
+            display.set_brightness(potential);
+        }
+    }
+
+    // 0 means we have hit the timeout
+    let timeout_diff =
+        qmk_sys::QUANTUM_PAINTER_DISPLAY_TIMEOUT.saturating_sub(Keyboard::last_activity_elapsed());
+
+    if state.screen_fade_out.finished() && timeout_diff > 0 && timeout_diff < 500 {
+        state.screen_fade_out.duration = timeout_diff;
+        state.screen_fade_out.reset();
+    }
+
+    if !state.screen_fade_out.finished() {
+        let potential = display.get_brightness().min(state.screen_fade_out.next());
+
+        if display.get_brightness() != potential {
+            display.set_brightness(potential);
+        }
+    }
 }
 
 pub fn layout(display: &Display, state: &mut State) {

@@ -18,6 +18,7 @@ pub enum SyncKey {
     DisplayPowerLevel,
     FrameTime,
     SecondarySlime,
+    ScreenFade,
 }
 
 const MAGIC: u8 = 0x07;
@@ -108,6 +109,15 @@ impl<Inner: SyncableValue> SyncValue<Inner> {
 
     pub fn get(&self) -> Inner {
         *self.inner.read()
+    }
+
+    pub fn mutate<F>(&mut self, f: F) -> Inner
+    where
+        F: FnOnce(&mut Inner),
+    {
+        let mut current = self.get();
+        f(&mut current);
+        self.set(current)
     }
 }
 

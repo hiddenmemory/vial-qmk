@@ -6,7 +6,7 @@ pub fn update(state: &mut State) {
     state.widget_clock.update(widgets::clock::update);
 
     state.widget_sleep_progress.set_progress_using(
-        qmk_sys::QUANTUM_PAINTER_DISPLAY_TIMEOUT - Keyboard::last_activity_elapsed(),
+        qmk_sys::QUANTUM_PAINTER_DISPLAY_TIMEOUT.saturating_sub(Keyboard::last_activity_elapsed()),
         qmk_sys::QUANTUM_PAINTER_DISPLAY_TIMEOUT,
     );
 }
