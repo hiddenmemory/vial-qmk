@@ -22,6 +22,7 @@ qmk-sys = { path = "../qmk_sys" }
 serde = { version = "1.0.228", default-features = false, features = ["alloc", "derive"] }
 postcard = { version = "1.1.3", features = ["alloc"] }
 hid-bridge = { path = "../../../shared/hid-bridge", default-features = false, features = ["no_std"] }
+spin = { version = "0.10.0", features = ["rwlock", "portable-atomic"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 rp2040-panic-usb-boot = "0.6.0"

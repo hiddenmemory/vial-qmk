@@ -11,7 +11,6 @@ use crate::{
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 struct SyncStateRequest {
-    blue_index: u8,
     secondary_slime: Slime,
     seconds_since_midnight: Option<u32>,
 }
@@ -29,7 +28,6 @@ pub fn initialise() {
     keyboard::listen(Channel::A, |request: SyncStateRequest| {
         let state = state::get();
 
-        state.blue_index = request.blue_index;
         state.secondary_slime = request.secondary_slime;
 
         let image = match state.secondary_slime {
@@ -55,7 +53,6 @@ pub fn sync(state: &mut State) {
     let result: Result<SyncStateResponse, _> = Keyboard::send(
         Channel::A,
         SyncStateRequest {
-            blue_index: state.blue_index,
             secondary_slime: state.secondary_slime,
             seconds_since_midnight: if state.last_clock.has_changed() {
                 state.last_clock.flush();

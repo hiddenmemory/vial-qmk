@@ -3,7 +3,9 @@ use serde::{Serialize, de::DeserializeOwned};
 
 use crate::{heap, utils::debug_log};
 
-use hid_bridge::{Empty, MessageHeader, MessageType, QMK_RS_CHANNEL, QMK_RS_CHANNEL_LENGTH};
+use hid_bridge::{
+    Empty, MessageHeader, MessageType, QMK_RS_CHANNEL, QMK_RS_CHANNEL_LENGTH, QMK_RS_HEADER_LENGTH,
+};
 
 type Bridge = Box<dyn Fn(&mut MessageHeader, &mut [u8]) -> bool>;
 
@@ -89,7 +91,8 @@ pub fn listen<
 
                     header.packet_length = buffer.len() as u8;
 
-                    raw_body[5..buffer.len() + 5].copy_from_slice(&buffer[..]);
+                    raw_body[QMK_RS_HEADER_LENGTH..buffer.len() + QMK_RS_HEADER_LENGTH]
+                        .copy_from_slice(&buffer[..]);
                 }
                 Err(err) => {
                     debug_log(&format!(
@@ -129,7 +132,7 @@ fn check(data: &mut [u8]) -> bool {
         return false;
     }
 
-    let (header, body) = data.split_at_mut(5);
+    let (header, body) = data.split_at_mut(QMK_RS_HEADER_LENGTH);
 
     let mut unpacked_header = match postcard::from_bytes::<MessageHeader>(header) {
         Ok(value) => value,

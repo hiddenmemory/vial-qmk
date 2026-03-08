@@ -5,7 +5,6 @@
 extern crate alloc;
 extern crate core;
 
-use alloc::format;
 #[cfg(target_arch = "arm")]
 use rp2040_panic_usb_boot as _;
 
@@ -27,6 +26,7 @@ mod os;
 mod primary;
 mod secondary;
 mod state;
+mod sync;
 mod timer;
 mod usb;
 mod utils;
@@ -72,13 +72,23 @@ fn render(display: &mut Display, state: &mut State) {
 }
 
 fn run_loop() {
-    state::get().deferred_token =
-        unsafe { qmk_sys::defer_exec(1000, Some(update), core::ptr::null_mut()) };
+    state::get().deferred_token = unsafe {
+        qmk_sys::defer_exec(
+            1000,
+            Some(if Keyboard::is_primary() {
+                update_primary
+            } else {
+                update_secondary
+            }),
+            core::ptr::null_mut(),
+        )
+    };
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn keyboard_post_init_rs() {
     heap::initialise();
+    sync::initialise();
 
     debug_log("initialising the display");
     let display = display::initialise();
@@ -121,17 +131,21 @@ fn initialise_state(state: &mut State) {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn update(_trigger_time: u32, _cb_arg: *mut core::ffi::c_void) -> u32 {
+pub extern "C" fn update_primary(_trigger_time: u32, _cb_arg: *mut core::ffi::c_void) -> u32 {
     let displays_off = Keyboard::last_activity_elapsed() > qmk_sys::QUANTUM_PAINTER_DISPLAY_TIMEOUT;
 
     if displays_off {
-        debug_log(&format!(
-            "display off, not rendering: {} > {}",
-            Keyboard::last_activity_elapsed(),
-            qmk_sys::QUANTUM_PAINTER_DISPLAY_TIMEOUT
-        ));
         display::get().assume_off();
     } else {
+        render_frame();
+    }
+
+    32 // ms
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn update_secondary(_trigger_time: u32, _cb_arg: *mut core::ffi::c_void) -> u32 {
+    if !display::get().power_level.get().is_off() {
         render_frame();
     }
 
@@ -162,7 +176,7 @@ pub extern "C" fn housekeeping_task_user_rs() {
 pub extern "C" fn rgb_matrix_indicators_advanced_rs(min: u8, max: u8) {
     unsafe {
         let state = state::get();
-        let display_off = display::get().backlight_level.is_off();
+        let display_off = display::get().power_level.get().is_off();
         let value = 0x05;
 
         let (red, green, blue): (u8, u8, u8) = if display_off {
@@ -176,8 +190,10 @@ pub extern "C" fn rgb_matrix_indicators_advanced_rs(min: u8, max: u8) {
             (value, value / 2, 0x0)
         };
 
+        let blue_index = state.blue_index.get();
+
         for offset in min..=max {
-            let (red, green, blue) = if offset == state.blue_index {
+            let (red, green, blue) = if offset == blue_index {
                 (0x0, 0x0, value)
             } else {
                 (red, green, blue)
@@ -200,7 +216,7 @@ pub unsafe extern "C" fn process_record_user_rs(
     check_display_state_and_render();
 
     if pressed && keycode == qmk_sys::qk_keycode_defines::KC_5 as u16 {
-        state::get().incr_blue().sync();
+        state::get().incr_blue();
         return false;
     }
 
@@ -211,7 +227,7 @@ pub fn check_display_state_and_render() {
     let should_render_frame = {
         let display = display::get();
 
-        if display.backlight_level.is_off() {
+        if display.power_level.get().is_off() {
             display::get().assume_on();
             true
         } else {

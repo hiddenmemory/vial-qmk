@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     image::Image,
-    secondary,
+    sync::{SyncKey, Syncing},
     utils::ChangeableValue,
     widgets::{self, WidgetState},
 };
@@ -38,7 +38,7 @@ pub struct State {
     // when we make changes, perhaps we have a flag to say it requires sync, then housekeeping
     // can push that change automatically to the other side
     pub secondary_slime: Slime,
-    pub blue_index: u8,
+    pub blue_index: Syncing<u8>,
 }
 
 impl State {
@@ -55,22 +55,13 @@ impl State {
             green_slime: None,
             orange_slime: None,
             secondary_slime: Slime::Orange,
-            blue_index: 0,
+            blue_index: Syncing::new(SyncKey::BlueDot, 0),
         }
     }
 
-    pub fn incr_blue(&mut self) -> &mut State {
-        self.blue_index += 1;
-
-        if self.blue_index == qmk_sys::RGB_MATRIX_LED_COUNT as u8 {
-            self.blue_index = 0;
-        }
-
-        self
-    }
-
-    pub fn sync(&mut self) {
-        secondary::sync(self);
+    pub fn incr_blue(&mut self) {
+        self.blue_index
+            .incr_mod(Some(qmk_sys::RGB_MATRIX_LED_COUNT as u8));
     }
 }
 

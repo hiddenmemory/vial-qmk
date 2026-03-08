@@ -15,7 +15,7 @@ pub enum Role {
 #[derive(Copy, Clone, Hash, Eq, PartialEq)]
 pub enum Channel {
     A,
-    B,
+    Sync,
     C,
     D,
     E,
@@ -136,10 +136,10 @@ impl Keyboard {
 }
 
 impl Channel {
-    fn index(&self) -> usize {
+    pub fn index(&self) -> usize {
         match self {
             Channel::A => 0,
-            Channel::B => 1,
+            Channel::Sync => 1,
             Channel::C => 2,
             Channel::D => 3,
             Channel::E => 4,
@@ -147,10 +147,10 @@ impl Channel {
         }
     }
 
-    fn to_qmk_id(self) -> i8 {
+    pub fn to_qmk_id(self) -> i8 {
         match self {
             Channel::A => qmk_sys::serial_transaction_id::USER_CHANNEL_A as i8,
-            Channel::B => qmk_sys::serial_transaction_id::USER_CHANNEL_B as i8,
+            Channel::Sync => qmk_sys::serial_transaction_id::USER_CHANNEL_B as i8,
             Channel::C => qmk_sys::serial_transaction_id::USER_CHANNEL_C as i8,
             Channel::D => qmk_sys::serial_transaction_id::USER_CHANNEL_D as i8,
             Channel::E => qmk_sys::serial_transaction_id::USER_CHANNEL_E as i8,
@@ -159,11 +159,11 @@ impl Channel {
     }
 }
 
-type Bridge = Box<dyn Fn(u8, *const core::ffi::c_void, u8, *mut core::ffi::c_void)>;
+pub type Bridge = Box<dyn Fn(u8, *const core::ffi::c_void, u8, *mut core::ffi::c_void)>;
 
 static mut SAM_PORTER_BRIDGES: Option<Vec<Option<Bridge>>> = None;
 
-fn bridges() -> &'static mut Vec<Option<Bridge>> {
+pub fn bridges() -> &'static mut Vec<Option<Bridge>> {
     unsafe {
         #[allow(static_mut_refs)]
         let existing = SAM_PORTER_BRIDGES.as_mut();
@@ -183,7 +183,7 @@ fn bridges() -> &'static mut Vec<Option<Bridge>> {
 macro_rules! bridge_for {
     ($type_name:ident => $type:expr) => {
         #[unsafe(no_mangle)]
-        extern "C" fn $type_name(
+        pub extern "C" fn $type_name(
             in_len: u8,
             in_data: *const core::ffi::c_void,
             out_len: u8,
@@ -199,7 +199,7 @@ macro_rules! bridge_for {
 }
 
 bridge_for!(bridge_a => Channel::A);
-bridge_for!(bridge_b => Channel::B);
+bridge_for!(bridge_sync => Channel::Sync);
 bridge_for!(bridge_c => Channel::C);
 bridge_for!(bridge_d => Channel::D);
 bridge_for!(bridge_e => Channel::E);
@@ -235,7 +235,7 @@ pub fn listen<
             channel.to_qmk_id(),
             Some(match channel {
                 Channel::A => bridge_a,
-                Channel::B => bridge_b,
+                Channel::Sync => bridge_sync,
                 Channel::C => bridge_c,
                 Channel::D => bridge_d,
                 Channel::E => bridge_e,
