@@ -15,8 +15,12 @@ void housekeeping_task_user_rs(void);
 void rgb_matrix_indicators_advanced_rs(uint8_t led_min, uint8_t led_max);
 bool process_record_user_rs(uint16_t keycode, bool pressed, keyrecord_t *record);
 
+void debug_toggle(bool on) {
+    debug_enable = on;
+}
+
 void keyboard_post_init_kb(void) {
-    debug_enable = true;
+    debug_toggle(true);
     keyboard_post_init_rs();
     keyboard_post_init_user();
 }

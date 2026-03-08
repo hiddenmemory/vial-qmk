@@ -27,6 +27,11 @@ struct Arguments {
 enum Command {
     Time,
     Wake,
+    Heap,
+    DebugOn,
+    DebugOff,
+    QueryFrameTime,
+    FrameTime { time: u32 },
 }
 
 fn parse_id(s: &str) -> anyhow::Result<u16> {
@@ -96,6 +101,26 @@ fn main() -> anyhow::Result<()> {
         Command::Wake => (
             MessageType::WakeDisplays,
             postcard::to_allocvec(&hid_bridge::Empty {})?,
+        ),
+        Command::Heap => (
+            MessageType::HeapUsage,
+            postcard::to_allocvec(&hid_bridge::Empty {})?,
+        ),
+        Command::DebugOn => (
+            MessageType::ToggleDebug,
+            postcard::to_allocvec(&hid_bridge::BoolValue { value: true })?,
+        ),
+        Command::DebugOff => (
+            MessageType::ToggleDebug,
+            postcard::to_allocvec(&hid_bridge::BoolValue { value: false })?,
+        ),
+        Command::QueryFrameTime => (
+            MessageType::SetFrameTime,
+            postcard::to_allocvec(&hid_bridge::U32Value { value: 0 })?,
+        ),
+        Command::FrameTime { time } => (
+            MessageType::SetFrameTime,
+            postcard::to_allocvec(&hid_bridge::U32Value { value: time })?,
         ),
     };
 

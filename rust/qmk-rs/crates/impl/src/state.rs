@@ -39,6 +39,7 @@ pub struct State {
     // can push that change automatically to the other side
     pub secondary_slime: Slime,
     pub blue_index: Syncing<u8>,
+    pub frame_time: Syncing<u32>,
 }
 
 impl State {
@@ -56,6 +57,7 @@ impl State {
             orange_slime: None,
             secondary_slime: Slime::Orange,
             blue_index: Syncing::new(SyncKey::BlueDot, 0),
+            frame_time: Syncing::new(SyncKey::FrameTime, 32),
         }
     }
 

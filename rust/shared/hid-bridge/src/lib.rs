@@ -43,6 +43,8 @@ pub enum MessageType {
     HeapUsage,
     DateTime,
     WakeDisplays,
+    ToggleDebug,
+    SetFrameTime,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -72,8 +74,18 @@ pub struct DateTime {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct BoolResponse {
-    pub success: bool,
+pub struct BoolValue {
+    pub value: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct U32Value {
+    pub value: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct U8Value {
+    pub value: u8,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

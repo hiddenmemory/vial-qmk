@@ -16,6 +16,7 @@ pub enum SyncKey {
     BlueDot,
     ClockSeconds,
     DisplayPowerLevel,
+    FrameTime,
 }
 
 const MAGIC: u8 = 0x07;

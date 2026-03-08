@@ -140,7 +140,7 @@ pub extern "C" fn update_primary(_trigger_time: u32, _cb_arg: *mut core::ffi::c_
         render_frame();
     }
 
-    32 // ms
+    state::get().frame_time.get() // ms
 }
 
 #[unsafe(no_mangle)]
@@ -149,7 +149,7 @@ pub extern "C" fn update_secondary(_trigger_time: u32, _cb_arg: *mut core::ffi::
         render_frame();
     }
 
-    32 // ms
+    state::get().frame_time.get() // ms
 }
 
 #[unsafe(no_mangle)]

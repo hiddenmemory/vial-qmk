@@ -1,35 +1,27 @@
 use alloc::{boxed::Box, format, rc::Rc, vec::Vec};
 use serde::{Serialize, de::DeserializeOwned};
 
-use crate::{heap, utils::debug_log};
-
 use hid_bridge::{
-    Empty, MessageHeader, MessageType, QMK_RS_CHANNEL, QMK_RS_CHANNEL_LENGTH, QMK_RS_HEADER_LENGTH,
+    MessageHeader, MessageType, QMK_RS_CHANNEL, QMK_RS_CHANNEL_LENGTH, QMK_RS_HEADER_LENGTH,
 };
+
+use crate::utils::debug_log;
 
 type Bridge = Box<dyn Fn(&mut MessageHeader, &mut [u8]) -> bool>;
 
 static mut USB_HANDLERS: Option<Vec<(MessageType, Option<Bridge>)>> = None;
+
+mod listeners;
 
 pub fn initialise() {
     unsafe {
         USB_HANDLERS = Some(Vec::with_capacity(QMK_RS_CHANNEL_LENGTH));
     }
 
-    listen::<Empty, Empty, _>(MessageType::Ping, |_, _| {
-        (Some(MessageType::Acknowledge), None)
-    });
-
-    listen::<Empty, Empty, _>(MessageType::HeapUsage, |_, _| {
-        let (total, used, free) = heap::usage();
-
-        debug_log(&format!(
-            "request for memory usage: total={total}, used={used}, free={free} ({}%)",
-            heap::usage_percentage()
-        ));
-
-        (None, None)
-    });
+    listeners::listen_for_ping();
+    listeners::listen_for_toggle_debug();
+    listeners::listen_for_set_frame_time();
+    listeners::listen_for_heap_usage();
 
     debug_log("[hid] initialised");
 }
