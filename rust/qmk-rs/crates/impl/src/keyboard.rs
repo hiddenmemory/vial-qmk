@@ -14,12 +14,12 @@ pub enum Role {
 
 #[derive(Copy, Clone, Hash, Eq, PartialEq)]
 pub enum Channel {
-    A,
     AutoSync,
+    A,
+    B,
     C,
     D,
     E,
-    F,
 }
 
 pub struct Keyboard;
@@ -138,23 +138,23 @@ impl Keyboard {
 impl Channel {
     pub fn index(&self) -> usize {
         match self {
-            Channel::A => 0,
-            Channel::AutoSync => 1,
-            Channel::C => 2,
-            Channel::D => 3,
-            Channel::E => 4,
-            Channel::F => 5,
+            Channel::AutoSync => 0,
+            Channel::A => 1,
+            Channel::B => 2,
+            Channel::C => 3,
+            Channel::D => 4,
+            Channel::E => 5,
         }
     }
 
     pub fn to_qmk_id(self) -> i8 {
         match self {
+            Channel::AutoSync => qmk_sys::serial_transaction_id::USER_CHANNEL_AUTO_SYNC as i8,
             Channel::A => qmk_sys::serial_transaction_id::USER_CHANNEL_A as i8,
-            Channel::AutoSync => qmk_sys::serial_transaction_id::USER_CHANNEL_B as i8,
+            Channel::B => qmk_sys::serial_transaction_id::USER_CHANNEL_B as i8,
             Channel::C => qmk_sys::serial_transaction_id::USER_CHANNEL_C as i8,
             Channel::D => qmk_sys::serial_transaction_id::USER_CHANNEL_D as i8,
             Channel::E => qmk_sys::serial_transaction_id::USER_CHANNEL_E as i8,
-            Channel::F => qmk_sys::serial_transaction_id::USER_CHANNEL_F as i8,
         }
     }
 }
@@ -198,12 +198,13 @@ macro_rules! bridge_for {
     };
 }
 
-bridge_for!(bridge_a => Channel::A);
 bridge_for!(bridge_sync => Channel::AutoSync);
+
+bridge_for!(bridge_a => Channel::A);
+bridge_for!(bridge_b => Channel::B);
 bridge_for!(bridge_c => Channel::C);
 bridge_for!(bridge_d => Channel::D);
 bridge_for!(bridge_e => Channel::E);
-bridge_for!(bridge_f => Channel::F);
 
 #[allow(dead_code)]
 pub fn listen<
@@ -235,12 +236,12 @@ pub fn listen<
         qmk_sys::transaction_register_rpc(
             channel.to_qmk_id(),
             Some(match channel {
-                Channel::A => bridge_a,
                 Channel::AutoSync => bridge_sync,
+                Channel::A => bridge_a,
+                Channel::B => bridge_b,
                 Channel::C => bridge_c,
                 Channel::D => bridge_d,
                 Channel::E => bridge_e,
-                Channel::F => bridge_f,
             }),
         );
     }
