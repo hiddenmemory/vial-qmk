@@ -1,12 +1,7 @@
 use hid_bridge::MessageType;
 
 use crate::{
-    display::{self},
-    keyboard::Keyboard,
-    rgb,
-    state::{self, State},
-    timer::Timer,
-    usb,
+    constants::SCREEN_FADE_DURATION, display::{self}, keyboard::Keyboard, rgb, state::{self, State}, timer::Timer, usb
 };
 
 pub fn initialise() {
@@ -42,7 +37,7 @@ pub fn check_screen_fades(state: &mut State) {
     let idle_remaining = Timer::idle_time_remaining();
 
     // If we are half a second to switching off the display
-    if state.screen_fade_out.finished() && idle_remaining > 0 && idle_remaining < 500 {
+    if state.screen_fade_out.finished() && idle_remaining > 0 && idle_remaining < SCREEN_FADE_DURATION {
         state.screen_fade_out.duration = idle_remaining;
         state.screen_fade_out.restart();
     }

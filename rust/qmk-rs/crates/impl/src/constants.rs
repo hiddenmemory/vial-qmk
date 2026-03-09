@@ -1,3 +1,3 @@
 pub const RUN_LOOP_START_DELAY: u32 = 1000;
 pub const RUN_LOOP_FRAME_TIME: u32 = 22;
-pub const SCREEN_FADE_DURATION: u32 = 500;
+pub const SCREEN_FADE_DURATION: u32 = 600;
