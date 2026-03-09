@@ -1,5 +1,5 @@
-use alloc::vec;
 use alloc::vec::Vec;
+use alloc::{ffi::CString, vec};
 
 use crate::{
     font::Font,
@@ -37,6 +37,10 @@ pub enum PowerLevel {
 impl PowerLevel {
     pub fn is_off(&self) -> bool {
         matches!(self, PowerLevel::Off(_))
+    }
+
+    pub fn is_on(&self) -> bool {
+        matches!(self, PowerLevel::On(_))
     }
 
     pub fn level(&self) -> u8 {
@@ -164,6 +168,10 @@ impl Display {
     }
 
     pub fn set_brightness(&mut self, level: u8) -> u8 {
+        if self.power_level.get().is_on() && self.get_brightness() == level {
+            return level;
+        }
+
         unsafe {
             if self.power_level.get().is_off() && level > 0 {
                 Keyboard::trigger_fake_activity();
@@ -230,6 +238,36 @@ impl Display {
                 colour.v,
                 true,
             )
+        }
+    }
+
+    pub fn center_text(&self, font: &Font, frame: Rect, fg: HSV, bg: HSV, text: &str) {
+        unsafe {
+            let Ok(actual_text) = CString::new(text) else {
+                return;
+            };
+
+            self.fill_rect(frame, bg);
+
+            let position = frame.position(
+                font.size_of(&actual_text),
+                crate::utils::Alignment::Center,
+                crate::utils::Alignment::Center,
+            );
+
+            qmk_sys::qp_drawtext_recolor(
+                self.device,
+                position.x,
+                position.y + 2,
+                font.handle,
+                actual_text.as_ptr(),
+                fg.h,
+                fg.s,
+                fg.v,
+                bg.h,
+                bg.s,
+                bg.v,
+            );
         }
     }
 

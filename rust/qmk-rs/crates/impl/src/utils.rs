@@ -156,7 +156,15 @@ impl Rect {
     pub fn split_v(&self, y: u16) -> Option<(Rect, Rect)> {
         // We can't split if the split point isn't within this rect
         if y > self.size.height {
-            return None;
+            return Some((
+                *self,
+                Rect::new(
+                    self.origin.x,
+                    self.origin.y + self.size.height,
+                    self.size.width,
+                    0,
+                ),
+            ));
         }
 
         let top = Rect::new(self.origin.x, self.origin.y, self.size.width, y);

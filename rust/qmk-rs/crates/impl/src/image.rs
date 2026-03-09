@@ -1,3 +1,5 @@
+use once_cell::sync::Lazy;
+
 use crate::{
     display::Display,
     utils::{Point, Size, Sizeable},
@@ -10,6 +12,9 @@ pub struct Image {
     pub frames: u16,
     pub handle: qmk_sys::painter_image_handle_t,
 }
+
+unsafe impl Sync for Image {}
+unsafe impl Send for Image {}
 
 impl core::fmt::Debug for Image {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -57,3 +62,8 @@ impl Sizeable for &Image {
         self.size
     }
 }
+
+pub static GREEN_SLIME: Lazy<Image> =
+    Lazy::new(|| unsafe { Image::new(&qmk_sys::gfx_GarbageSlime) });
+
+pub static ORANGE_SLIME: Lazy<Image> = Lazy::new(|| unsafe { Image::new(&qmk_sys::gfx_ChefSlime) });

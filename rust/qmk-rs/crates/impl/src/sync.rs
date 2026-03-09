@@ -111,6 +111,7 @@ impl<Inner: SyncableValue> SyncValue<Inner> {
         *self.inner.read()
     }
 
+    #[allow(dead_code)]
     pub fn mutate<F>(&mut self, f: F) -> Inner
     where
         F: FnOnce(&mut Inner),

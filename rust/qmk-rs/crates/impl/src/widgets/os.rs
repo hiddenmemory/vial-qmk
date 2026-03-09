@@ -2,7 +2,7 @@ use crate::{
     display::Display,
     os::HostOS,
     utils::{HSV, Rect, Size},
-    widgets::WidgetState,
+    widgets::{UpdateOutcome, WidgetState},
 };
 
 #[derive(Debug, Default)]
@@ -12,34 +12,36 @@ pub struct State {
 
 pub fn initial() -> WidgetState<State> {
     WidgetState {
+        layout_size_fn: request_size,
+        update_fn: update,
+        render_fn: render,
         ignores_accent: true,
         ..Default::default()
     }
 }
 
-pub fn request_size(display: &Display, _state: &State) -> Size {
+fn request_size(display: &Display, _state: &State) -> Size {
     Size {
         width: display.bounds.size.width,
         height: display.small_font.line_height,
     }
 }
 
-pub fn update(state: &mut State) -> bool {
+fn update(state: &mut State) -> UpdateOutcome {
     let current_os = HostOS::current();
 
     if state.os.ne(&current_os) {
         state.os = current_os;
-        true
-    } else {
-        false
+        return UpdateOutcome::RequiresRedraw;
     }
+
+    UpdateOutcome::NoChange
 }
 
-pub fn render(display: &Display, state: &State, frame: Rect) {
+fn render(display: &Display, state: &mut State, frame: Rect) {
     display.fill_rect(frame, *display.clear_colour);
 
-    super::center_text(
-        display,
+    display.center_text(
         &display.small_font,
         frame,
         HSV::white(),

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
-use crate::{sync::syncing::impl_serde::MakeSyncableValue, timer::Timer, utils::HSV};
+use crate::{sync::syncing::impl_serde::MakeSyncableValue, timer::Timer};
 
 pub trait Tweenable: Copy + core::fmt::Debug + Eq + PartialEq + 'static {
     fn step(from: &Self, to: &Self, step: f32) -> Self;
@@ -77,6 +77,10 @@ impl<Value: Tweenable + Serialize + DeserializeOwned> Tween<Value> {
         Timer::read() > self.finish
     }
 
+    pub fn running(&self) -> bool {
+        Timer::read() <= self.finish
+    }
+
     pub fn next(&self) -> Value {
         let step_value = if matches!(self.direction, TweenDirection::Forwards) {
             self.curve.step(self.start, self.finish)
@@ -87,7 +91,7 @@ impl<Value: Tweenable + Serialize + DeserializeOwned> Tween<Value> {
         Value::step(&self.from, &self.to, step_value)
     }
 
-    pub fn reset(&mut self) -> &mut Self {
+    pub fn restart(&mut self) -> &mut Self {
         self.start = Timer::read();
         self.finish = self.start + self.duration;
         self
@@ -96,5 +100,10 @@ impl<Value: Tweenable + Serialize + DeserializeOwned> Tween<Value> {
     pub fn direction(mut self, direction: TweenDirection) -> Self {
         self.direction = direction;
         self
+    }
+
+    pub fn finish(&mut self) {
+        self.start = Timer::read().saturating_sub(1);
+        self.finish = self.start;
     }
 }

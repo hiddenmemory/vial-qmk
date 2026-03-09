@@ -4,6 +4,7 @@ use crate::{
     display::Display,
     keymap::KeyMap,
     utils::{HSV, Rect, Size},
+    widgets::{UpdateOutcome, WidgetState},
 };
 
 const PADDING: u16 = 6;
@@ -13,14 +14,24 @@ pub struct State {
     active_layer: Option<u8>,
 }
 
-pub fn request_size(display: &Display, _state: &State) -> Size {
+pub fn initial() -> WidgetState<State> {
+    WidgetState {
+        layout_size_fn: request_size,
+        update_fn: update,
+        render_fn: render,
+
+        ..Default::default()
+    }
+}
+
+fn request_size(display: &Display, _state: &State) -> Size {
     Size {
         width: display.bounds.size.width,
         height: display.small_font.line_height + (PADDING * 2),
     }
 }
 
-pub fn update(state: &mut State) -> bool {
+fn update(state: &mut State) -> UpdateOutcome {
     let current_layer = KeyMap::get_layer();
 
     if state
@@ -29,13 +40,13 @@ pub fn update(state: &mut State) -> bool {
         .unwrap_or(true)
     {
         state.active_layer = Some(current_layer);
-        true
+        UpdateOutcome::RequiresRedraw
     } else {
-        false
+        UpdateOutcome::NoChange
     }
 }
 
-pub fn render(display: &Display, state: &State, frame: Rect) {
+fn render(display: &Display, state: &mut State, frame: Rect) {
     let layer_count = KeyMap::layer_count() as u16;
     let layer_width = frame.size.width / layer_count;
     let padding = frame.size.width % layer_count / 2;
@@ -51,8 +62,7 @@ pub fn render(display: &Display, state: &State, frame: Rect) {
             frame.size.height,
         );
 
-        super::center_text(
-            display,
+        display.center_text(
             &display.large_font,
             rect,
             if current == layer {

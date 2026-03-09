@@ -21,10 +21,10 @@ impl SyncableValue for u32 {
             bail!("[u32.to_wire] expected a buffer with at least 4 bytes");
         }
 
-        buf[0] = ((self >> 24) as u8) & 0xFF;
-        buf[1] = ((self >> 16) as u8) & 0xFF;
-        buf[2] = ((self >> 8) as u8) & 0xFF;
-        buf[3] = (*self as u8) & 0xFF;
+        buf[0] = (self >> 24) as u8;
+        buf[1] = (self >> 16) as u8;
+        buf[2] = (self >> 8) as u8;
+        buf[3] = *self as u8;
 
         Ok(length)
     }

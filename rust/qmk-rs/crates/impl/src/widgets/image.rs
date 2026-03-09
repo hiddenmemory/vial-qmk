@@ -2,53 +2,57 @@ use crate::{
     display::Display,
     image::Image,
     utils::{Alignment, Rect, Size},
-    widgets::WidgetState,
+    widgets::{UpdateOutcome, WidgetState},
 };
 
 #[derive(Debug, Default)]
 pub struct State {
-    image: Option<Image>,
+    image: Option<&'static Image>,
     horizonal_alignment: Alignment,
     vertical_alignment: Alignment,
 }
 
 #[allow(dead_code)]
 impl WidgetState<State> {
-    pub fn set_image(&mut self, image: &Option<Image>) -> &mut Self {
-        let existing_id = self.inner.image.as_ref().map(|image| image.id);
-        let incoming_id = image.as_ref().map(|image| image.id);
+    pub fn set_image(&mut self, image: &'static Image) -> UpdateOutcome {
+        let existing_id = self.state.image.as_ref().map(|image| image.id).unwrap_or(0);
+        let incoming_id = image.id;
 
         // No need to update the image
         if existing_id.eq(&incoming_id) {
-            return self;
+            return UpdateOutcome::NoChange;
         }
 
-        self.inner.image = *image;
-        self.set_needs_display();
-
-        self
+        self.state.image = Some(image);
+        self.set_needs_redraw()
     }
 
     pub fn set_vertical(&mut self, alignment: Alignment) -> &mut Self {
-        self.inner.vertical_alignment = alignment;
+        self.state.vertical_alignment = alignment;
         self
     }
 
     pub fn set_horizontal(&mut self, alignment: Alignment) -> &mut Self {
-        self.inner.horizonal_alignment = alignment;
+        self.state.horizonal_alignment = alignment;
         self
     }
 }
 
-pub fn initial() -> WidgetState<State> {
+pub fn initial(image: &'static Image, vertical_alignment: Alignment) -> WidgetState<State> {
     WidgetState {
+        state: State {
+            image: Some(image),
+            vertical_alignment,
+            ..Default::default()
+        },
         ignores_accent: true,
+        layout_size_fn: request_size,
+        render_fn: render,
         ..Default::default()
     }
 }
 
-#[allow(dead_code)]
-pub fn request_size(_display: &Display, state: &State) -> Size {
+fn request_size(_display: &Display, state: &State) -> Size {
     state
         .image
         .as_ref()
@@ -56,12 +60,12 @@ pub fn request_size(_display: &Display, state: &State) -> Size {
         .unwrap_or_default()
 }
 
-pub fn render(display: &Display, state: &State, frame: Rect) {
+fn render(display: &Display, state: &mut State, frame: Rect) {
     display.fill_rect(frame, *display.clear_colour);
 
     if let Some(image) = &state.image {
         image.draw(
-            frame.position(image, state.horizonal_alignment, state.vertical_alignment),
+            frame.position(*image, state.horizonal_alignment, state.vertical_alignment),
             display,
         );
     }

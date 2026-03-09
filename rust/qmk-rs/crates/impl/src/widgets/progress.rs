@@ -1,7 +1,7 @@
 use crate::{
     display::Display,
     utils::{Rect, Size},
-    widgets::WidgetState,
+    widgets::{UpdateOutcome, WidgetState},
 };
 
 #[derive(Debug, Default)]
@@ -13,15 +13,16 @@ pub struct State {
 
 #[allow(dead_code)]
 impl WidgetState<State> {
-    pub fn set_progress(&mut self, progress: u8) -> &mut Self {
-        if self.inner.progress != progress {
-            self.inner.progress = progress;
-            self.set_needs_display();
+    pub fn set_progress(&mut self, progress: u8) -> UpdateOutcome {
+        if self.state.progress != progress {
+            self.state.progress = progress;
+            self.set_needs_redraw()
+        } else {
+            UpdateOutcome::NoChange
         }
-        self
     }
 
-    pub fn set_progress_using(&mut self, value: u32, total: u32) -> &mut Self {
+    pub fn set_progress_using(&mut self, value: u32, total: u32) -> UpdateOutcome {
         let progress = ((value as f32) / (total as f32) * 100.0f32) as u8;
         self.set_progress(progress)
     }
@@ -29,24 +30,26 @@ impl WidgetState<State> {
 
 pub fn initial() -> WidgetState<State> {
     let mut state: WidgetState<State> = WidgetState {
+        layout_size_fn: request_size,
+        render_fn: render,
         ..Default::default()
     };
 
-    state.inner.height = 4;
-    state.inner.padding = 2;
+    state.state.height = 4;
+    state.state.padding = 2;
     state.set_progress(0);
 
     state
 }
 
-pub fn request_size(display: &Display, state: &State) -> Size {
+fn request_size(display: &Display, state: &State) -> Size {
     Size {
         width: display.bounds.size.width,
         height: state.height + (state.padding * 2),
     }
 }
 
-pub fn render(display: &Display, state: &State, frame: Rect) {
+fn render(display: &Display, state: &mut State, frame: Rect) {
     display.fill_rect(frame, *display.clear_colour);
 
     let pixel_progress = ((frame.size.width as f32 / 100.0f32) * state.progress as f32) as u16;

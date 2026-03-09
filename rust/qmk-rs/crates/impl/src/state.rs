@@ -2,10 +2,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     display::Display,
-    image::Image,
+    image::{GREEN_SLIME, Image, ORANGE_SLIME},
+    pages::{self, PageState},
     sync::{SyncKey, SyncValue, syncing::impl_serde::MakeSyncableValue},
     tween::{Tween, TweenDirection},
-    widgets::{self, WidgetState},
 };
 
 pub const RUN_LOOP_START_DELAY: u32 = 1000;
@@ -15,6 +15,16 @@ pub enum Slime {
     Green,
     #[default]
     Orange,
+}
+
+impl Slime {
+    #[inline]
+    pub fn image(&self) -> &'static Image {
+        match self {
+            Slime::Green => &GREEN_SLIME,
+            Slime::Orange => &ORANGE_SLIME,
+        }
+    }
 }
 
 impl MakeSyncableValue for Slime {}
@@ -29,21 +39,10 @@ impl Slime {
 }
 
 pub struct State {
-    pub widget_os: WidgetState<widgets::os::State>,
-    pub widget_layer: WidgetState<widgets::layer::State>,
-    pub widget_primary_image: WidgetState<widgets::image::State>,
-    pub widget_clock: WidgetState<widgets::clock::State>,
-    pub widget_sleep_progress: WidgetState<widgets::progress::State>,
-    pub widget_secondary_image: WidgetState<widgets::image::State>,
+    pub page_layers: PageState<pages::layers::State>,
+    pub page_clock: PageState<pages::clock::State>,
     pub deferred_token: u8,
     pub last_sync: u32,
-    pub seconds_since_midnight: SyncValue<u32>,
-    pub green_slime: Option<Image>,
-    pub orange_slime: Option<Image>,
-    // TODO this should be split into a shared state, and then we can just sync that
-    // when we make changes, perhaps we have a flag to say it requires sync, then housekeeping
-    // can push that change automatically to the other side
-    pub secondary_slime: SyncValue<Slime>,
     pub blue_index: SyncValue<u8>,
     pub frame_time: SyncValue<u32>,
     pub screen_fade_in: Tween<u8>,
@@ -53,35 +52,16 @@ pub struct State {
 impl State {
     pub fn new() -> State {
         State {
-            widget_os: widgets::os::initial(),
-            widget_layer: Default::default(),
-            widget_primary_image: widgets::image::initial(),
-            widget_clock: widgets::clock::initial(),
-            widget_sleep_progress: widgets::progress::initial(),
-            widget_secondary_image: widgets::image::initial(),
+            page_layers: pages::layers::initial(),
+            page_clock: pages::clock::initial(),
             deferred_token: 0,
             last_sync: 0,
-            seconds_since_midnight: SyncValue::with_fn(SyncKey::Clock, 0, |value| {
-                get().widget_clock.set_seconds(value);
-            }),
-            green_slime: None,
-            orange_slime: None,
-            secondary_slime: SyncValue::with_fn(SyncKey::SecondarySlime, Slime::Orange, |slime| {
-                let state = get();
-
-                let image = match slime {
-                    Slime::Green => &state.green_slime,
-                    Slime::Orange => &state.orange_slime,
-                };
-
-                state.widget_secondary_image.set_image(image);
-            }),
             blue_index: SyncValue::new(SyncKey::BlueDot, 0),
             frame_time: SyncValue::new(SyncKey::FrameTime, 32),
-            screen_fade_in: Tween::new(0, Display::max_brightness() / 2, 500)
+            screen_fade_in: Tween::new(0, Display::max_brightness() / 2 + 1, 500)
                 .delay(RUN_LOOP_START_DELAY),
-            screen_fade_out: Tween::new(0, Display::max_brightness() / 2, 500)
-                .direction(TweenDirection::Backwards),
+            screen_fade_out: Tween::new(0, Display::max_brightness() / 2 + 1, 0)
+                .direction(TweenDirection::Backwards), // It doesn't matter duration is 0, we always set it to zero
         }
     }
 
@@ -91,7 +71,8 @@ impl State {
     }
 
     pub fn reset_screen_fade(&mut self) {
-        self.screen_fade_in.reset();
+        self.screen_fade_out.finish();
+        self.screen_fade_in.restart();
     }
 }
 
@@ -104,10 +85,7 @@ pub fn get() -> &'static mut State {
     }
 }
 
-pub fn initialise<F>(f: F) -> &'static mut State
-where
-    F: Fn(&mut State),
-{
+pub fn initialise() -> &'static mut State {
     unsafe {
         #[allow(static_mut_refs)]
         if STATE.is_none() {
@@ -116,7 +94,6 @@ where
 
         #[allow(static_mut_refs)]
         let state = STATE.as_mut().unwrap();
-        f(state);
         state
     }
 }

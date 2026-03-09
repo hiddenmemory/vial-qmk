@@ -9,7 +9,6 @@ extern crate core;
 use rp2040_panic_usb_boot as _;
 
 use crate::display::Display;
-use crate::image::Image;
 use crate::keyboard::{Keyboard, Role};
 use crate::keymap::KeyMap;
 use crate::state::{RUN_LOOP_START_DELAY, State};
@@ -23,6 +22,7 @@ mod image;
 mod keyboard;
 mod keymap;
 mod os;
+mod pages;
 mod primary;
 mod rgb;
 mod secondary;
@@ -101,7 +101,7 @@ pub extern "C" fn keyboard_post_init_rs() {
     display.set_brightness(0);
 
     debug_log("setting up initial state");
-    let state = state::initialise(initialise_state);
+    let state = state::initialise();
 
     debug_log("applying first render");
     update_state(state);
@@ -119,21 +119,6 @@ pub extern "C" fn keyboard_post_init_rs() {
     run_loop();
 
     display.set_brightness(0);
-}
-
-fn initialise_state(state: &mut State) {
-    state.green_slime = unsafe { Some(Image::new(&qmk_sys::gfx_GarbageSlime)) };
-    state.orange_slime = unsafe { Some(Image::new(&qmk_sys::gfx_ChefSlime)) };
-
-    state
-        .widget_primary_image
-        .set_image(&state.green_slime)
-        .set_vertical(utils::Alignment::Trailing);
-
-    state
-        .widget_secondary_image
-        .set_image(&state.orange_slime)
-        .set_vertical(utils::Alignment::Trailing);
 }
 
 #[unsafe(no_mangle)]
@@ -172,11 +157,7 @@ pub extern "C" fn housekeeping_task_user_rs() {
     }
 
     state.last_sync = Timer::read();
-
-    state
-        .secondary_slime
-        .set(state.secondary_slime.get().other());
-
+    state.page_clock.flip_slime();
     state.incr_blue();
 }
 
@@ -202,10 +183,11 @@ pub unsafe extern "C" fn process_record_user_rs(
 pub fn check_display_state_and_render() {
     let should_render_frame = {
         let display = display::get();
+        let state = state::get();
 
-        if display.power_level.get().is_off() {
-            state::get().reset_screen_fade();
-            display::get().assume_on();
+        if display.power_level.get().is_off() || state.screen_fade_out.running() {
+            state.reset_screen_fade();
+            display.assume_on();
             true
         } else {
             false
