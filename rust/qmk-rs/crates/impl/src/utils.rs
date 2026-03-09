@@ -38,23 +38,7 @@ pub struct HSV {
 }
 
 impl HSV {
-    pub fn white() -> HSV {
-        HSV::from(0, 0, 100)
-    }
-
-    pub fn black() -> HSV {
-        HSV::from(0, 0, 0)
-    }
-
-    pub fn papaya() -> HSV {
-        HSV::from(30, 100, 100)
-    }
-
-    pub fn paulo() -> HSV {
-        HSV::from(105, 89, 95)
-    }
-
-    pub fn from(h: u16, s: u8, v: u8) -> HSV {
+    pub const fn from(h: u16, s: u8, v: u8) -> HSV {
         let actual_h = ((h as f32 / 360.0) * 255.0) as u8;
         let actual_s = ((s as f32 / 100.0) * 255.0) as u8;
         let actual_v = ((v as f32 / 100.0) * 255.0) as u8;
@@ -65,6 +49,11 @@ impl HSV {
         }
     }
 }
+
+pub static HSV_WHITE: HSV = HSV::from(0, 0, 100);
+pub static HSV_BLACK: HSV = HSV::from(0, 0, 0);
+pub static HSV_ORANGE: HSV = HSV::from(30, 100, 100);
+pub static HSV_LIME: HSV = HSV::from(105, 89, 95);
 
 #[derive(Default, Debug, Copy, Clone)]
 pub struct Point {

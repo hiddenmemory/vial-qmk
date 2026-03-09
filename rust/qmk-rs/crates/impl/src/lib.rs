@@ -5,7 +5,6 @@
 extern crate alloc;
 extern crate core;
 
-use alloc::format;
 #[cfg(target_arch = "arm")]
 use rp2040_panic_usb_boot as _;
 
@@ -13,10 +12,9 @@ use crate::constants::RUN_LOOP_START_DELAY;
 use crate::display::Display;
 use crate::keyboard::Keyboard;
 use crate::keymap::KeyMap;
-use crate::pages::Page;
 use crate::state::State;
 use crate::timer::Timer;
-use crate::utils::{HSV, debug_log};
+use crate::utils::{HSV_LIME, HSV_ORANGE, debug_log};
 
 mod constants;
 mod display;
@@ -56,9 +54,9 @@ fn update(state: &mut State) {
 
 fn render(display: &mut Display, state: &mut State) {
     if KeyMap::get_layer() > 0 {
-        display.accent_colour.set(HSV::papaya());
+        display.accent_colour.set(HSV_ORANGE);
     } else {
-        display.accent_colour.set(HSV::paulo());
+        display.accent_colour.set(HSV_LIME);
     }
 
     if state.requires_layout() {

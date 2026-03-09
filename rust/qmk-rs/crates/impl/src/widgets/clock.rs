@@ -3,7 +3,7 @@ use alloc::{format, string::ToString};
 use crate::{
     display::Display,
     timer::Timer,
-    utils::{HSV, Rect, Size},
+    utils::{HSV_BLACK, Rect, Size},
     widgets::{UpdateOutcome, WidgetState},
 };
 
@@ -80,7 +80,7 @@ fn render(display: &Display, state: &mut State, frame: Rect, _first_render: bool
     display.center_text(
         &display.large_font,
         frame,
-        HSV::black(),
+        HSV_BLACK,
         *display.accent_colour,
         &text,
     );

@@ -68,6 +68,7 @@ macro_rules! get_page {
     };
 }
 
+#[allow(dead_code)]
 impl State {
     pub fn new() -> State {
         State {

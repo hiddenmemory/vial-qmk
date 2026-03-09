@@ -1,6 +1,7 @@
 use alloc::vec::Vec;
 use alloc::{ffi::CString, vec};
 
+use crate::utils::{HSV_BLACK, HSV_ORANGE};
 use crate::{
     font::Font,
     keyboard::Keyboard,
@@ -121,8 +122,8 @@ impl Display {
                     height: panel_height,
                 },
             },
-            clear_colour: TrackValue::new(HSV::black()),
-            accent_colour: TrackValue::new(HSV::papaya()),
+            clear_colour: TrackValue::new(HSV_BLACK),
+            accent_colour: TrackValue::new(HSV_ORANGE),
             device,
             power_level: SyncValue::new(SyncKey::DisplayPowerLevel, Default::default()),
             device_buffer,

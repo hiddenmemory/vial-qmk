@@ -3,7 +3,7 @@ use alloc::format;
 use crate::{
     display::Display,
     keymap::KeyMap,
-    utils::{HSV, Rect, Size},
+    utils::{HSV_BLACK, HSV_WHITE, Rect, Size},
     widgets::{UpdateOutcome, WidgetState},
 };
 
@@ -66,14 +66,14 @@ fn render(display: &Display, state: &mut State, frame: Rect, _first_render: bool
             &display.large_font,
             rect,
             if current == layer {
-                HSV::black()
+                HSV_BLACK
             } else {
-                HSV::white()
+                HSV_WHITE
             },
             if current == layer {
                 *display.accent_colour
             } else {
-                HSV::black()
+                *display.clear_colour
             },
             &text,
         )

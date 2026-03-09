@@ -1,7 +1,7 @@
 use crate::{
     display::Display,
     os::HostOS,
-    utils::{HSV, Rect, Size},
+    utils::{HSV_BLACK, HSV_WHITE, Rect, Size},
     widgets::{UpdateOutcome, WidgetState},
 };
 
@@ -44,8 +44,8 @@ fn render(display: &Display, state: &mut State, frame: Rect, _first_render: bool
     display.center_text(
         &display.small_font,
         frame,
-        HSV::white(),
-        HSV::black(),
+        HSV_WHITE,
+        HSV_BLACK,
         state.os.name(),
     );
 }
