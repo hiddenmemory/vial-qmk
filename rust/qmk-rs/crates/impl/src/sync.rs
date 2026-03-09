@@ -145,6 +145,10 @@ pub fn initialise() {
         }
 
         bridges()[Channel::AutoSync.index()].replace(Box::new(auto_sync_bridge));
+
+        unsafe {
+            qmk_sys::transaction_register_rpc(Channel::AutoSync.to_qmk_id(), Some(bridge_sync));
+        }
     }
 
     debug_log("[sync] initialised");
@@ -237,10 +241,6 @@ where
     }
 
     handlers.push((key, Some(outer_f)));
-
-    unsafe {
-        qmk_sys::transaction_register_rpc(Channel::AutoSync.to_qmk_id(), Some(bridge_sync));
-    }
 }
 
 fn send<Type: SyncableValue>(key: SyncKey, value: &Type) -> anyhow::Result<()> {

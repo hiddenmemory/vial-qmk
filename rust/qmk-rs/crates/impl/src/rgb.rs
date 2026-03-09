@@ -1,4 +1,5 @@
 use crate::state::Slime;
+use crate::utils::debug::debug_log;
 use alloc::format;
 use hid_bridge::{Empty, HsvValue, MessageType};
 
@@ -7,7 +8,6 @@ use crate::{
     display,
     keyboard::{Keyboard, Role},
     state, usb,
-    utils::debug_log,
 };
 
 pub fn initialise() {

@@ -14,16 +14,17 @@ use crate::keyboard::Keyboard;
 use crate::keymap::KeyMap;
 use crate::state::State;
 use crate::timer::Timer;
-use crate::utils::{HSV_LIME, HSV_ORANGE, debug_log};
+use crate::utils::debug::{self, debug_log};
+use crate::utils::{HSV_LIME, HSV_ORANGE};
 
 mod constants;
+mod detect_os;
 mod display;
 mod font;
 mod heap;
 mod image;
 mod keyboard;
 mod keymap;
-mod os;
 mod pages;
 mod primary;
 mod rgb;
@@ -84,6 +85,7 @@ fn run_loop() {
 #[unsafe(no_mangle)]
 pub extern "C" fn keyboard_post_init_rs() {
     heap::initialise();
+    debug::initialise();
     sync::initialise();
 
     debug_log("initialising the display");
@@ -122,6 +124,8 @@ pub extern "C" fn run_loop_primary(_trigger_time: u32, _cb_arg: *mut core::ffi::
         render_frame();
     }
 
+    utils::debug::check_secondary_debug_queue();
+
     state::get().frame_time.get() // ms
 }
 
@@ -136,10 +140,6 @@ pub extern "C" fn run_loop_secondary(_trigger_time: u32, _cb_arg: *mut core::ffi
 
 #[unsafe(no_mangle)]
 pub extern "C" fn housekeeping_task_user_rs() {
-    if !Keyboard::is_primary() {
-        return;
-    }
-
     let state = state::get();
     let elapsed = Timer::elapsed(state.last_sync);
 
@@ -148,8 +148,11 @@ pub extern "C" fn housekeeping_task_user_rs() {
     }
 
     state.last_sync = Timer::read();
-    state.page_clock.flip_slime();
-    state.incr_blue();
+
+    if Keyboard::is_primary() {
+        state.page_clock.flip_slime();
+        state.incr_blue();
+    }
 }
 
 #[unsafe(no_mangle)]

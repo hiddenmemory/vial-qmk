@@ -2,7 +2,7 @@ use alloc::format;
 
 use crate::{
     display::Display,
-    utils::{Rect, Size},
+    utils::{Rect, Size, debug::debug_log},
 };
 
 pub mod clock;
@@ -64,7 +64,7 @@ impl<Inner: Default + core::fmt::Debug> Default for WidgetState<Inner> {
 }
 
 fn empty_size<Inner: Default + core::fmt::Debug>(_display: &Display, _state: &Inner) -> Size {
-    crate::utils::debug_log(&format!(
+    debug_log(&format!(
         "[widgets] are we hooked up correctly for {_state:?}"
     ));
     Default::default()

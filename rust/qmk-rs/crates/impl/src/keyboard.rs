@@ -7,9 +7,27 @@ pub enum Side {
     Right,
 }
 
+impl Side {
+    pub fn label(&self) -> &'static str {
+        match self {
+            Side::Left => "<<<",
+            Side::Right => ">>>",
+        }
+    }
+}
+
 pub enum Role {
     Primary,
     Secondary,
+}
+
+impl Role {
+    pub fn label(&self) -> &'static str {
+        match self {
+            Role::Primary => "P",
+            Role::Secondary => "S",
+        }
+    }
 }
 
 #[derive(Copy, Clone, Hash, Eq, PartialEq)]

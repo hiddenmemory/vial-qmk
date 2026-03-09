@@ -1,6 +1,6 @@
 use crate::{
+    detect_os::HostOS,
     display::Display,
-    os::HostOS,
     utils::{HSV_BLACK, HSV_WHITE, Rect, Size},
     widgets::{UpdateOutcome, WidgetState},
 };

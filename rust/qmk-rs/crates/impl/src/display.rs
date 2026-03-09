@@ -1,12 +1,13 @@
 use alloc::vec::Vec;
 use alloc::{ffi::CString, vec};
 
+use crate::utils::debug::debug_log;
 use crate::utils::{HSV_BLACK, HSV_ORANGE};
 use crate::{
     font::Font,
     keyboard::Keyboard,
     sync::{SyncKey, SyncValue},
-    utils::{HSV, Point, Rect, Size, TrackValue, debug_log},
+    utils::{HSV, Point, Rect, Size, TrackValue},
 };
 
 static mut DISPLAY: Option<Display> = None;

@@ -1,33 +1,4 @@
-use alloc::format;
-
-static mut SHOULD_ALLOW_DEBUG_OUTPUT: bool = true;
-
-pub fn debug_toggle(on: bool) {
-    unsafe extern "C" {
-        pub fn debug_toggle(on: bool);
-    }
-
-    if !on {
-        debug_log("turning off debug output!");
-    }
-
-    unsafe {
-        SHOULD_ALLOW_DEBUG_OUTPUT = on;
-        debug_toggle(on);
-    }
-
-    if on {
-        debug_log("debug output now on!");
-    }
-}
-
-pub fn debug_log(message: &str) {
-    unsafe {
-        if SHOULD_ALLOW_DEBUG_OUTPUT {
-            qmk_sys::printf(format!("[rs] {message}\n\0").as_ptr());
-        }
-    }
-}
+pub mod debug;
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Copy, Clone, PartialEq, Eq)]

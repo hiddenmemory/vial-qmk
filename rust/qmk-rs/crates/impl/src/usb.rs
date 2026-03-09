@@ -5,7 +5,7 @@ use hid_bridge::{
     MessageHeader, MessageType, QMK_RS_CHANNEL, QMK_RS_CHANNEL_LENGTH, QMK_RS_HEADER_LENGTH,
 };
 
-use crate::utils::debug_log;
+use crate::utils::debug::debug_log;
 
 type Bridge = Box<dyn Fn(&mut MessageHeader, &mut [u8]) -> bool>;
 
