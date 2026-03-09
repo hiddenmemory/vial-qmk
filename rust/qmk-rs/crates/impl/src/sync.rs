@@ -19,6 +19,7 @@ pub enum SyncKey {
     FrameTime,
     SecondarySlime,
     ScreenFade,
+    SecondaryDisplayStack,
 }
 
 const MAGIC: u8 = 0x07;
@@ -31,7 +32,7 @@ struct Header {
     body_length: u8,
 }
 
-pub trait SyncableValue: Copy + Clone + core::fmt::Debug + Eq + 'static {
+pub trait SyncableValue: Clone + core::fmt::Debug + Eq + 'static {
     // Take a buffer and try to make the value, on success return
     // the value, oth
     fn from_wire(buf: &[u8]) -> anyhow::Result<Self>;
@@ -45,6 +46,7 @@ pub mod syncing;
 pub struct SyncValue<Inner: SyncableValue> {
     key: SyncKey,
     inner: Rc<RwLock<Inner>>,
+    set_fn: Option<fn(&Inner)>,
 }
 
 impl<Inner: SyncableValue> SyncValue<Inner> {
@@ -61,46 +63,55 @@ impl<Inner: SyncableValue> SyncValue<Inner> {
             });
         }
 
-        SyncValue { key, inner }
+        SyncValue {
+            key,
+            inner,
+            set_fn: None,
+        }
     }
 
-    pub fn with_fn<F>(key: SyncKey, value: Inner, f: F) -> SyncValue<Inner>
-    where
-        F: Fn(Inner) + 'static,
-    {
+    pub fn with_fn(key: SyncKey, value: Inner, f: fn(&Inner)) -> SyncValue<Inner> {
         let inner = Rc::new(RwLock::new(value));
 
-        if Keyboard::is_secondary() {
+        let set_fn = if Keyboard::is_secondary() {
             let clone = inner.clone();
 
             listen(key, move |value: Inner| {
+                f(&value);
                 {
                     let mut lock = clone.write();
                     *lock = value;
                 }
-                f(value);
                 Ok(())
             });
-        }
 
-        SyncValue { key, inner }
+            None
+        } else {
+            Some(f)
+        };
+
+        SyncValue { key, inner, set_fn }
     }
 
     pub fn set(&mut self, value: Inner) -> Inner {
-        let current = { *self.inner.read() };
+        let current = { self.inner.read().clone() };
 
         if current.ne(&value) {
-            {
-                let mut lock = self.inner.write();
-                *lock = value;
-            }
-
             if Keyboard::is_primary() {
-                if let Err(err) = send(self.key, value) {
+                if let Err(err) = send(self.key, &value) {
                     debug_log(&format!("failed to sync value for {:?}: {err}", self.key))
                 } else {
                     debug_log(&format!("[sync] sent {value:?} for {:?}", self.key));
                 }
+            }
+
+            if let Some(f) = &self.set_fn {
+                (f)(&value);
+            }
+
+            {
+                let mut lock = self.inner.write();
+                *lock = value;
             }
         }
 
@@ -108,7 +119,7 @@ impl<Inner: SyncableValue> SyncValue<Inner> {
     }
 
     pub fn get(&self) -> Inner {
-        *self.inner.read()
+        self.inner.read().clone()
     }
 
     #[allow(dead_code)]
@@ -231,7 +242,7 @@ where
     }
 }
 
-fn send<Type: SyncableValue>(key: SyncKey, value: Type) -> anyhow::Result<()> {
+fn send<Type: SyncableValue>(key: SyncKey, value: &Type) -> anyhow::Result<()> {
     let mut outgoing_buffer = [0u8; 32];
     let mut incoming_buffer = [0u8; 32];
 

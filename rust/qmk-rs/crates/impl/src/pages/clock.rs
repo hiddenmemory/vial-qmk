@@ -33,7 +33,7 @@ impl Default for State {
                     .page_clock
                     .state
                     .widget_clock
-                    .set_seconds(value);
+                    .set_seconds(*value);
             }),
             secondary_slime: SyncValue::with_fn(SyncKey::SecondarySlime, Slime::Orange, |slime| {
                 state::get()
@@ -51,6 +51,10 @@ impl PageState<State> {
         self.state
             .secondary_slime
             .set(self.state.secondary_slime.get().other());
+    }
+
+    pub fn set_seconds(&mut self, seconds: u32) {
+        self.state.seconds_since_midnight.set(seconds);
     }
 }
 
@@ -84,8 +88,8 @@ pub fn layout(display: &Display, state: &mut State) {
     }
 }
 
-pub fn render(display: &Display, state: &mut State) {
-    render_widgets! { display, state =>
+pub fn render(display: &Display, state: &mut State, first_render: bool) {
+    render_widgets! { display, state, first_render =>
         widget_clock,
         widget_sleep_progress,
         widget_image

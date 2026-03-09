@@ -66,8 +66,8 @@ pub fn layout(display: &Display, state: &mut State) {
     }
 }
 
-pub fn render(display: &Display, state: &mut State) {
-    render_widgets! { display, state =>
+pub fn render(display: &Display, state: &mut State, first_render: bool) {
+    render_widgets! { display, state, first_render =>
         widget_os,
         widget_layer,
         widget_image

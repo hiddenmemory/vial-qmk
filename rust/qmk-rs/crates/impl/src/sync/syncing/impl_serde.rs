@@ -2,7 +2,7 @@ use serde::{Serialize, de::DeserializeOwned};
 
 use crate::sync::SyncableValue;
 
-pub trait MakeSyncableValue: Copy + Clone + core::fmt::Debug + core::cmp::Eq + 'static {}
+pub trait MakeSyncableValue: Clone + core::fmt::Debug + core::cmp::Eq + 'static {}
 
 impl<T: Serialize + DeserializeOwned + MakeSyncableValue> SyncableValue for T {
     fn from_wire(buf: &[u8]) -> anyhow::Result<Self> {

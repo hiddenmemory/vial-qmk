@@ -46,7 +46,7 @@ pub struct WidgetState<Inner: Default + core::fmt::Debug> {
 
     pub layout_size_fn: fn(&Display, &Inner) -> Size,
     pub update_fn: fn(&mut Inner) -> UpdateOutcome,
-    pub render_fn: fn(&Display, &mut Inner, Rect),
+    pub render_fn: fn(&Display, &mut Inner, Rect, bool),
 }
 
 impl<Inner: Default + core::fmt::Debug> Default for WidgetState<Inner> {
@@ -78,6 +78,7 @@ fn empty_render<Inner: Default + core::fmt::Debug>(
     _display: &Display,
     _state: &mut Inner,
     _frame: Rect,
+    _first_render: bool,
 ) {
 }
 
@@ -101,9 +102,12 @@ impl<Inner: Default + core::fmt::Debug> WidgetState<Inner> {
         outcome
     }
 
-    pub fn render(&mut self, display: &Display) {
-        if self.requires_redraw || (!self.ignores_accent && display.accent_colour.has_changed()) {
-            (self.render_fn)(display, &mut self.state, self.layout_frame);
+    pub fn render(&mut self, display: &Display, first_render: bool) {
+        if first_render
+            || self.requires_redraw
+            || (!self.ignores_accent && display.accent_colour.has_changed())
+        {
+            (self.render_fn)(display, &mut self.state, self.layout_frame, first_render);
             self.requires_redraw = false;
         }
     }
@@ -125,10 +129,10 @@ macro_rules! update_widgets {
 
 #[macro_export]
 macro_rules! render_widgets {
-    ( $display:ident , $state:ident => $( $state_path:ident ),* ) => {
+    ( $display:ident , $state:ident , $first_render:ident => $( $state_path:ident ),* ) => {
         {
             $(
-                 $state. $state_path .render($display);
+                 $state. $state_path .render($display, $first_render);
             )*
 
         }

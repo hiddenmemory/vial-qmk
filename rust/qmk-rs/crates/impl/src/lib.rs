@@ -5,16 +5,20 @@
 extern crate alloc;
 extern crate core;
 
+use alloc::format;
 #[cfg(target_arch = "arm")]
 use rp2040_panic_usb_boot as _;
 
+use crate::constants::RUN_LOOP_START_DELAY;
 use crate::display::Display;
-use crate::keyboard::{Keyboard, Role};
+use crate::keyboard::Keyboard;
 use crate::keymap::KeyMap;
-use crate::state::{RUN_LOOP_START_DELAY, State};
+use crate::pages::Page;
+use crate::state::State;
 use crate::timer::Timer;
 use crate::utils::{HSV, debug_log};
 
+mod constants;
 mod display;
 mod font;
 mod heap;
@@ -34,31 +38,20 @@ mod usb;
 mod utils;
 mod widgets;
 
-fn first_render(display: &mut Display, state: &mut State) {
-    display.clear();
-    render(display, state);
-}
-
 fn render_frame() {
     let state = state::get();
     let display = display::get();
 
-    update_state(state);
+    update(state);
     render(display, state);
 }
 
-fn update_state(state: &mut State) {
-    match Keyboard::role() {
-        Role::Primary => primary::update(state),
-        Role::Secondary => secondary::update(state),
+fn update(state: &mut State) {
+    if Keyboard::is_primary() {
+        primary::check_screen_fades(state);
     }
-}
 
-fn layout(display: &mut Display, state: &mut State) {
-    match Keyboard::role() {
-        Role::Primary => primary::layout(display, state),
-        Role::Secondary => secondary::layout(display, state),
-    }
+    state.update(state.page());
 }
 
 fn render(display: &mut Display, state: &mut State) {
@@ -68,10 +61,11 @@ fn render(display: &mut Display, state: &mut State) {
         display.accent_colour.set(HSV::paulo());
     }
 
-    match Keyboard::role() {
-        Role::Primary => primary::render(display, state),
-        Role::Secondary => secondary::render(display, state),
+    if state.requires_layout() {
+        state.layout(state.page(), display);
     }
+
+    state.render(state.page(), display);
     display.flush();
 }
 
@@ -99,14 +93,13 @@ pub extern "C" fn keyboard_post_init_rs() {
 
     debug_log("setting display brightness");
     display.set_brightness(0);
+    display.clear();
 
     debug_log("setting up initial state");
-    let state = state::initialise();
+    state::initialise();
 
     debug_log("applying first render");
-    update_state(state);
-    layout(display, state);
-    first_render(display, state);
+    render_frame();
 
     debug_log("setting up side specific configuration");
     if Keyboard::is_primary() {
@@ -170,11 +163,21 @@ pub unsafe extern "C" fn process_record_user_rs(
     pressed: bool,
     _record: *const qmk_sys::keyrecord_t,
 ) -> bool {
+    if !Keyboard::is_primary() {
+        return true;
+    }
+
     check_display_state_and_render();
 
     if pressed && keycode == qmk_sys::qk_keycode_defines::KC_5 as u16 {
         state::get().incr_blue();
         return false;
+    }
+
+    if pressed && keycode == qmk_sys::qk_keycode_defines::KC_4 as u16 {
+        let state = state::get();
+        state.replace_primary_page(state.page().cycle());
+        state.replace_secondary_page(state.other_page().cycle());
     }
 
     true

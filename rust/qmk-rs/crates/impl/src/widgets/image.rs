@@ -60,7 +60,7 @@ fn request_size(_display: &Display, state: &State) -> Size {
         .unwrap_or_default()
 }
 
-fn render(display: &Display, state: &mut State, frame: Rect) {
+fn render(display: &Display, state: &mut State, frame: Rect, _first_render: bool) {
     display.fill_rect(frame, *display.clear_colour);
 
     if let Some(image) = &state.image {

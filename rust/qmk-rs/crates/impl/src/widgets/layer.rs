@@ -46,7 +46,7 @@ fn update(state: &mut State) -> UpdateOutcome {
     }
 }
 
-fn render(display: &Display, state: &mut State, frame: Rect) {
+fn render(display: &Display, state: &mut State, frame: Rect, _first_render: bool) {
     let layer_count = KeyMap::layer_count() as u16;
     let layer_width = frame.size.width / layer_count;
     let padding = frame.size.width % layer_count / 2;

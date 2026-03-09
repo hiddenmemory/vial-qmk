@@ -1,7 +1,7 @@
 use hid_bridge::MessageType;
 
 use crate::{
-    display::{self, Display},
+    display::{self},
     keyboard::Keyboard,
     rgb,
     state::{self, State},
@@ -25,11 +25,7 @@ pub fn initialise() {
                 seconds_since_midnight,
             }) = request
             {
-                state
-                    .page_clock
-                    .state
-                    .seconds_since_midnight
-                    .set(seconds_since_midnight);
+                state.page_clock.set_seconds(seconds_since_midnight);
             }
 
             (Some(MessageType::Acknowledge), None)
@@ -39,7 +35,7 @@ pub fn initialise() {
     rgb::initialise();
 }
 
-fn check_screen_fades(state: &mut State) {
+pub fn check_screen_fades(state: &mut State) {
     let display = display::get();
 
     // 0 means we have hit the timeout
@@ -58,17 +54,4 @@ fn check_screen_fades(state: &mut State) {
     if state.screen_fade_in.running() {
         display.set_brightness(display.get_brightness().max(state.screen_fade_in.next()));
     }
-}
-
-pub fn update(state: &mut State) {
-    state.page_layers.update();
-    check_screen_fades(state);
-}
-
-pub fn layout(display: &Display, state: &mut State) {
-    state.page_layers.layout(display);
-}
-
-pub fn render(display: &mut Display, state: &mut State) {
-    state.page_layers.render(display);
 }
