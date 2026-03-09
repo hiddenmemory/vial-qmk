@@ -51,6 +51,7 @@ pub struct State {
     pub frame_time: SyncValue<u32>,
     pub screen_fade_in: Tween<u8>,
     pub screen_fade_out: Tween<u8>,
+    pub debug_output: SyncValue<bool>,
 }
 
 macro_rules! get_page {
@@ -88,6 +89,9 @@ impl State {
                 .delay(RUN_LOOP_START_DELAY),
             screen_fade_out: Tween::new(0, Display::max_brightness() / 2 + 1, 0)
                 .direction(TweenDirection::Backwards), // It doesn't matter duration is 0, we always set it to zero
+            debug_output: SyncValue::with_fn(SyncKey::DebugOutput, true, |value| {
+                crate::utils::debug::debug_toggle(*value);
+            }),
         }
     }
 

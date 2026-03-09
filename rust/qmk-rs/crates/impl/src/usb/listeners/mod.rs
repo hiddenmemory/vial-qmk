@@ -1,7 +1,7 @@
 use alloc::format;
 use hid_bridge::{BoolValue, Empty, MessageType, U32Value};
 
-use crate::{heap, keyboard::Keyboard, state, utils::debug_log};
+use crate::{heap, keyboard::Keyboard, state, utils::debug::debug_log};
 
 pub(crate) fn listen_for_heap_usage() {
     super::listen::<Empty, Empty, _>(MessageType::HeapUsage, |_, _| {
@@ -37,7 +37,9 @@ pub(crate) fn listen_for_set_frame_time() {
 
 pub(crate) fn listen_for_toggle_debug() {
     super::listen::<BoolValue, Empty, _>(MessageType::ToggleDebug, |_, value| {
-        crate::utils::debug_toggle(value.map(|inner| inner.value).unwrap_or(true));
+        state::get()
+            .debug_output
+            .set(value.map(|value| value.value).unwrap_or(true));
         (Some(MessageType::Acknowledge), None)
     });
 }

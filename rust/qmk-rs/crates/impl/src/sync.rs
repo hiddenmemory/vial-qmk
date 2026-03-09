@@ -1,6 +1,6 @@
 use crate::{
     keyboard::{Channel, Keyboard, bridge_sync, bridges},
-    utils::debug_log,
+    utils::debug::debug_log,
 };
 use alloc::{boxed::Box, format, rc::Rc, vec::Vec};
 use anyhow::bail;
@@ -20,6 +20,7 @@ pub enum SyncKey {
     SecondarySlime,
     ScreenFade,
     SecondaryDisplayStack,
+    DebugOutput,
 }
 
 const MAGIC: u8 = 0x07;
