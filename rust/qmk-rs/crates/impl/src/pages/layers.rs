@@ -59,11 +59,17 @@ pub fn update(state: &mut State) -> UpdateOutcome {
 }
 
 pub fn layout(display: &Display, state: &mut State) {
-    layout_widgets! { display, state =>
+    let remaining_height = layout_widgets! { display, state =>
          widget_os,
          widget_layer,
          widget_image
-    }
+    };
+
+    state
+        .widget_image
+        .layout_frame
+        .origin
+        .shift_v(remaining_height as i16);
 }
 
 pub fn render(display: &Display, state: &mut State, first_render: bool) {

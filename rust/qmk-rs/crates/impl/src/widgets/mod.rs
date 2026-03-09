@@ -152,6 +152,8 @@ macro_rules! layout_widgets {
                 $state. $state_path .layout_frame = widget_frame;
 
             )*
+
+            _remaining_frame.size.height
         }
     };
 }

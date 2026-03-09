@@ -69,6 +69,14 @@ impl Point {
     pub fn at(x: u16, y: u16) -> Point {
         Point { x, y }
     }
+
+    pub fn shift_v(&mut self, amount: i16) {
+        if amount < 0 {
+            self.y = self.y.saturating_sub(amount.abs() as u16);
+        } else {
+            self.y = self.y.saturating_add(amount as u16);
+        }
+    }
 }
 
 pub trait Sizeable {
