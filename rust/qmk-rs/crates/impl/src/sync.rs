@@ -47,7 +47,7 @@ pub mod syncing;
 pub struct SyncValue<Inner: SyncableValue> {
     key: SyncKey,
     inner: Rc<RwLock<Inner>>,
-    set_fn: Option<fn(&Inner)>,
+    set_fn: Option<fn(&Inner, &Inner)>,
 }
 
 impl<Inner: SyncableValue> SyncValue<Inner> {
@@ -71,14 +71,16 @@ impl<Inner: SyncableValue> SyncValue<Inner> {
         }
     }
 
-    pub fn with_fn(key: SyncKey, value: Inner, f: fn(&Inner)) -> SyncValue<Inner> {
+    pub fn with_fn(key: SyncKey, value: Inner, f: fn(&Inner, &Inner)) -> SyncValue<Inner> {
         let inner = Rc::new(RwLock::new(value));
 
         let set_fn = if Keyboard::is_secondary() {
             let clone = inner.clone();
 
             listen(key, move |value: Inner| {
-                f(&value);
+                let existing = { clone.read().clone() };
+                f(&existing, &value);
+
                 {
                     let mut lock = clone.write();
                     *lock = value;
@@ -98,16 +100,14 @@ impl<Inner: SyncableValue> SyncValue<Inner> {
         let current = { self.inner.read().clone() };
 
         if current.ne(&value) {
-            if Keyboard::is_primary() {
-                if let Err(err) = send(self.key, &value) {
-                    debug_log(&format!("failed to sync value for {:?}: {err}", self.key))
-                } else {
-                    debug_log(&format!("[sync] sent {value:?} for {:?}", self.key));
-                }
+            if Keyboard::is_primary()
+                && let Err(err) = send(self.key, &value)
+            {
+                debug_log(&format!("failed to sync value for {:?}: {err}", self.key))
             }
 
             if let Some(f) = &self.set_fn {
-                (f)(&value);
+                (f)(&current, &value);
             }
 
             {

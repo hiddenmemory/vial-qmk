@@ -1,6 +1,7 @@
 use alloc::vec::Vec;
 use alloc::{ffi::CString, vec};
 
+use crate::state;
 use crate::utils::debug::debug_log;
 use crate::utils::{HSV_BLACK, HSV_ORANGE};
 use crate::{
@@ -99,8 +100,8 @@ impl Display {
             );
         }
 
-        let small_font = Font::new(unsafe { &qmk_sys::font_pixellari18 });
-        let large_font = Font::new(unsafe { &qmk_sys::font_pixellari24 });
+        let small_font = Font::new(unsafe { &qmk_sys::font_pragmata });
+        let large_font = Font::new(unsafe { &qmk_sys::font_pragmata });
 
         let mut device_buffer = vec![0_u8; 64_801];
         let device = unsafe {
@@ -126,7 +127,19 @@ impl Display {
             clear_colour: TrackValue::new(HSV_BLACK),
             accent_colour: TrackValue::new(HSV_ORANGE),
             device,
-            power_level: SyncValue::new(SyncKey::DisplayPowerLevel, Default::default()),
+            power_level: SyncValue::with_fn(
+                SyncKey::DisplayPowerLevel,
+                Default::default(),
+                |previous, current| {
+                    if previous.is_off()
+                        && current.is_on()
+                        && let Some(state) = state::try_get()
+                    {
+                        debug_log("display coming back on, forcing a redraw");
+                        state.requires_redraw()
+                    }
+                },
+            ),
             device_buffer,
             actual_device,
             small_font,
@@ -279,6 +292,8 @@ impl Display {
 
         unsafe {
             qmk_sys::qp_surface_draw(self.device, self.actual_device, 0, 0, false);
+            qmk_sys::qp_flush(self.actual_device);
+            qmk_sys::qp_flush(self.device);
         }
     }
 }

@@ -43,7 +43,7 @@ impl Point {
 
     pub fn shift_v(&mut self, amount: i16) {
         if amount < 0 {
-            self.y = self.y.saturating_sub(amount.abs() as u16);
+            self.y = self.y.saturating_sub(amount.unsigned_abs());
         } else {
             self.y = self.y.saturating_add(amount as u16);
         }

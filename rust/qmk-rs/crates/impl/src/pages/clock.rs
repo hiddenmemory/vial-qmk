@@ -28,20 +28,24 @@ impl Default for State {
                 Slime::Orange.image(),
                 crate::utils::Alignment::Trailing,
             ),
-            seconds_since_midnight: SyncValue::with_fn(SyncKey::Clock, 0, |value| {
+            seconds_since_midnight: SyncValue::with_fn(SyncKey::Clock, 0, |_, value| {
                 state::get()
                     .page_clock
                     .state
                     .widget_clock
                     .set_seconds(*value);
             }),
-            secondary_slime: SyncValue::with_fn(SyncKey::SecondarySlime, Slime::Orange, |slime| {
-                state::get()
-                    .page_clock
-                    .state
-                    .widget_image
-                    .set_image(slime.image());
-            }),
+            secondary_slime: SyncValue::with_fn(
+                SyncKey::SecondarySlime,
+                Slime::Orange,
+                |_, slime| {
+                    state::get()
+                        .page_clock
+                        .state
+                        .widget_image
+                        .set_image(slime.image());
+                },
+            ),
         }
     }
 }

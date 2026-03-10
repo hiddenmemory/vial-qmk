@@ -77,7 +77,7 @@ impl State {
             secondary_stack: SyncValue::with_fn(
                 SyncKey::SecondaryDisplayStack,
                 vec![Page::default_secondary_page()],
-                |_| get().requires_redraw(),
+                |_, _| get().requires_redraw(),
             ),
             page_layers: pages::layers::initial(),
             page_clock: pages::clock::initial(),
@@ -89,7 +89,7 @@ impl State {
                 .delay(RUN_LOOP_START_DELAY),
             screen_fade_out: Tween::new(0, Display::max_brightness() / 2 + 1, 0)
                 .direction(TweenDirection::Backwards), // It doesn't matter duration is 0, we always set it to zero
-            debug_output: SyncValue::with_fn(SyncKey::DebugOutput, true, |value| {
+            debug_output: SyncValue::with_fn(SyncKey::DebugOutput, true, |_, value| {
                 crate::utils::debug::debug_toggle(*value);
             }),
         }
@@ -142,7 +142,9 @@ impl State {
     }
 
     pub fn requires_redraw(&mut self) {
-        get_page!(self, self.page() => first_render = true);
+        if !self.primary_stack.is_empty() {
+            get_page!(self, self.page() => first_render = true);
+        }
     }
 
     pub fn push_primary_page(&mut self, page: Page) {
@@ -182,6 +184,13 @@ impl State {
 }
 
 static mut STATE: Option<State> = None;
+
+pub fn try_get() -> Option<&'static mut State> {
+    unsafe {
+        #[allow(static_mut_refs)]
+        STATE.as_mut()
+    }
+}
 
 pub fn get() -> &'static mut State {
     unsafe {

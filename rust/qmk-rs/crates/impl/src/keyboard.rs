@@ -10,8 +10,8 @@ pub enum Side {
 impl Side {
     pub fn label(&self) -> &'static str {
         match self {
-            Side::Left => "<<<",
-            Side::Right => ">>>",
+            Side::Left => "\x1B[34m Left\x1B[0m",
+            Side::Right => "\x1B[35mRight\x1B[0m",
         }
     }
 }
@@ -22,10 +22,22 @@ pub enum Role {
 }
 
 impl Role {
+    pub fn highlight_start(&self) -> &'static str {
+        match self {
+            Role::Primary => "\x1B[96m",
+            Role::Secondary => "\x1B[93m",
+        }
+    }
+    pub fn highlight_finish(&self) -> &'static str {
+        match self {
+            Role::Primary => "\x1B[0m",
+            Role::Secondary => "\x1B[0m",
+        }
+    }
     pub fn label(&self) -> &'static str {
         match self {
-            Role::Primary => "P",
-            Role::Secondary => "S",
+            Role::Primary => "PRI",
+            Role::Secondary => "SEC",
         }
     }
 }

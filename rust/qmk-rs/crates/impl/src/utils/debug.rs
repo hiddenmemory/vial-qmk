@@ -39,13 +39,16 @@ pub fn debug_log(message: &str) {
     unsafe {
         if SHOULD_ALLOW_DEBUG_OUTPUT {
             let time = Timer::read();
+            let role = Keyboard::role();
+            let h_start = role.highlight_start();
+            let h_end = role.highlight_finish();
+            let role_label = role.label();
+            let side_label = Keyboard::side().label();
 
             let realised_message = format!(
-                "{: >6}.{:0<3} [{}] {} {message}\n\0",
+                "{: >6}.{:0<3} {side_label}({h_start}{role_label}{h_end}) {h_start}{message}{h_end}\n\0",
                 time / 1000,
                 time % 1000,
-                Keyboard::role().label(),
-                Keyboard::side().label(),
             );
 
             match Keyboard::role() {
@@ -69,9 +72,11 @@ pub fn initialise() {
         unsafe {
             qmk_sys::transaction_register_rpc(Channel::A.to_qmk_id(), Some(debug_bridge));
         }
-    }
 
-    debug_log("[sync] initialised");
+        debug_log("debug_log initialised for secondary");
+    } else {
+        debug_log("debug_log initialised for primary");
+    }
 }
 
 unsafe extern "C" fn debug_bridge(

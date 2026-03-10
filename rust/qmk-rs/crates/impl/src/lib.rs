@@ -46,10 +46,6 @@ fn render_frame() {
 }
 
 fn update(state: &mut State) {
-    if Keyboard::is_primary() {
-        primary::check_screen_fades(state);
-    }
-
     state.update(state.page());
 }
 
@@ -124,8 +120,6 @@ pub extern "C" fn run_loop_primary(_trigger_time: u32, _cb_arg: *mut core::ffi::
         render_frame();
     }
 
-    utils::debug::check_secondary_debug_queue();
-
     state::get().frame_time.get() // ms
 }
 
@@ -141,6 +135,12 @@ pub extern "C" fn run_loop_secondary(_trigger_time: u32, _cb_arg: *mut core::ffi
 #[unsafe(no_mangle)]
 pub extern "C" fn housekeeping_task_user_rs() {
     let state = state::get();
+
+    if Keyboard::is_primary() {
+        utils::debug::check_secondary_debug_queue();
+        primary::check_screen_fades(state);
+    }
+
     let elapsed = Timer::elapsed(state.last_sync);
 
     if elapsed < 2000 {
@@ -185,21 +185,11 @@ pub unsafe extern "C" fn process_record_user_rs(
 }
 
 pub fn check_display_state_and_render() {
-    let should_render_frame = {
-        let display = display::get();
-        let state = state::get();
+    let display = display::get();
+    let state = state::get();
 
-        if display.power_level.get().is_off() || state.screen_fade_out.running() {
-            state.reset_screen_fade();
-            display.assume_on();
-            true
-        } else {
-            false
-        }
-    };
-
-    if should_render_frame {
-        debug_log("forcing frame render");
-        render_frame();
+    if display.power_level.get().is_off() || state.screen_fade_out.running() {
+        state.reset_screen_fade();
+        display.assume_on();
     }
 }

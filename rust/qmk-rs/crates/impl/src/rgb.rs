@@ -65,24 +65,25 @@ pub extern "C" fn rgb_matrix_indicators_advanced_rs(min: u8, max: u8) {
         let hsv_v = qmk_sys::rgb_matrix_get_val();
         let state = state::get();
         let display_off = display::get().power_level.get().is_off();
-        let value = scale_value(0xFF, hsv_v);
+        let awake_value = scale_value(0xFF, hsv_v);
+        let sleep_value = if hsv_v > 0 { 0x01 } else { 0x0 };
 
         let (red, green, blue): (u8, u8, u8) = if display_off {
-            (0x01, 0x01, 0x01)
+            (sleep_value, sleep_value, sleep_value)
         } else if KeyMap::get_layer() == 0
             && (matches!(Keyboard::role(), Role::Primary)
                 || matches!(state.page_clock.state.secondary_slime.get(), Slime::Green))
         {
-            (0x0, value, 0x0)
+            (0x0, awake_value, 0x0)
         } else {
-            (value, value / 2, 0x0)
+            (awake_value, awake_value / 2, 0x0)
         };
 
         let blue_index = state.blue_index.get();
 
         for offset in min..=max {
             let (red, green, blue) = if offset == blue_index {
-                (0x0, 0x0, value)
+                (0x0, 0x0, awake_value)
             } else {
                 (red, green, blue)
             };
