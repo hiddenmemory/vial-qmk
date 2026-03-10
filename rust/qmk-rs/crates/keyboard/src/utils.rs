@@ -128,7 +128,7 @@ impl Rect {
                 *self,
                 Rect::new(
                     self.origin.x,
-                    self.origin.y + self.size.height,
+                    self.origin.y + self.size.height + 1,
                     self.size.width,
                     0,
                 ),

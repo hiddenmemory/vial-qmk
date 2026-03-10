@@ -317,21 +317,21 @@ impl Display {
     }
 
     pub fn test(&mut self) {
-        const width: usize = 30;
-        const height: usize = 30;
+        const WIDTH: usize = 30;
+        const HEIGHT: usize = 30;
 
         let red = 0xFFu16;
         let green = 0x00u16;
         let blue = 0x00u16;
         let colour: u16 = ((blue & 0b11111000) << 8) | ((red & 0b11111100) << 3) | (green >> 3);
-        let mut buf = vec![colour; width * height];
+        let buf = vec![colour; WIDTH * HEIGHT];
 
-        self.set_clip(Rect::new(10, 10, width as u16, height as u16));
+        self.set_clip(Rect::new(10, 10, WIDTH as u16, HEIGHT as u16));
         unsafe {
             qmk_sys::qp_pixdata(
                 self.device,
                 buf.as_ptr() as *const core::ffi::c_void,
-                width as u32 * height as u32,
+                WIDTH as u32 * HEIGHT as u32,
             );
         }
         // self.reset_clip();
