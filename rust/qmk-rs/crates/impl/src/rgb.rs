@@ -41,7 +41,11 @@ pub fn initialise() {
             ));
 
             unsafe {
-                qmk_sys::rgb_matrix_sethsv(hsv.h, hsv.s, hsv.v);
+                qmk_sys::rgb_matrix_sethsv(
+                    hsv.h,
+                    hsv.s,
+                    hsv.v.max(qmk_sys::RGB_MATRIX_MAXIMUM_BRIGHTNESS as u8),
+                );
             }
         }
 
