@@ -14,6 +14,7 @@ const HEADER_PATHS: &[&str] = &[
     "../../../../quantum/rgb_matrix/rgb_matrix.h",
     "../../../../quantum/split_common/transactions.h",
     "../../../../quantum/keymap_extras/keymap_uk.h",
+    "../../../../keyboards/mechboards/common/qp_font/pragmata.qff.h",
     "../../../../keyboards/mechboards/common/qp_font/pixellari18.qff.h",
     "../../../../keyboards/mechboards/common/qp_font/pixellari24.qff.h",
     "../../../../keyboards/mechboards/common/qp_images/solaire.qgf.h",
@@ -36,7 +37,7 @@ fn main() {
         .expect("Unable to parse compile_commands.json");
     let unit = units
         .iter()
-        .find(|unit| unit.file.ends_with("/r2g.c"))
+        .find(|unit| unit.file.ends_with("mechboards/lily58/r2g/r2g.c"))
         .expect("Unable to find target unit");
 
     let mut include_next_argument = false;
