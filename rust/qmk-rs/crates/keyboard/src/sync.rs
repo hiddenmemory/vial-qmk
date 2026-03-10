@@ -1,5 +1,5 @@
 use crate::{
-    keyboard::{Channel, Keyboard, bridge_sync, bridges},
+    keyboard::{Channel, Keyboard},
     utils::debug::debug_log,
 };
 use alloc::{boxed::Box, format, rc::Rc, vec::Vec};
@@ -144,17 +144,18 @@ pub fn initialise() {
             SYNC_HANDLERS = Some(Vec::with_capacity(16));
         }
 
-        bridges()[Channel::AutoSync.index()].replace(Box::new(auto_sync_bridge));
-
         unsafe {
-            qmk_sys::transaction_register_rpc(Channel::AutoSync.to_qmk_id(), Some(bridge_sync));
+            qmk_sys::transaction_register_rpc(
+                Channel::AutoSync.to_qmk_id(),
+                Some(auto_sync_bridge),
+            );
         }
     }
 
     debug_log("[sync] initialised");
 }
 
-fn auto_sync_bridge(
+unsafe extern "C" fn auto_sync_bridge(
     in_len: u8,
     in_data: *const core::ffi::c_void,
     out_len: u8,

@@ -49,7 +49,7 @@ pub enum Channel {
     B,
     C,
     D,
-    E,
+    Debug,
 }
 
 pub struct Keyboard;
@@ -173,7 +173,7 @@ impl Channel {
             Channel::B => 2,
             Channel::C => 3,
             Channel::D => 4,
-            Channel::E => 5,
+            Channel::Debug => 5,
         }
     }
 
@@ -184,7 +184,7 @@ impl Channel {
             Channel::B => qmk_sys::serial_transaction_id::USER_CHANNEL_B as i8,
             Channel::C => qmk_sys::serial_transaction_id::USER_CHANNEL_C as i8,
             Channel::D => qmk_sys::serial_transaction_id::USER_CHANNEL_D as i8,
-            Channel::E => qmk_sys::serial_transaction_id::USER_CHANNEL_E as i8,
+            Channel::Debug => qmk_sys::serial_transaction_id::USER_CHANNEL_DEBUG as i8,
         }
     }
 }
@@ -228,13 +228,10 @@ macro_rules! bridge_for {
     };
 }
 
-bridge_for!(bridge_sync => Channel::AutoSync);
-
 bridge_for!(bridge_a => Channel::A);
 bridge_for!(bridge_b => Channel::B);
 bridge_for!(bridge_c => Channel::C);
 bridge_for!(bridge_d => Channel::D);
-bridge_for!(bridge_e => Channel::E);
 
 #[allow(dead_code)]
 pub fn listen<
@@ -248,6 +245,11 @@ pub fn listen<
 ) where
     F: Fn(Request) -> Response + 'static,
 {
+    if matches!(channel, Channel::Debug) || matches!(channel, Channel::AutoSync) {
+        // This is handled elsewhere
+        return;
+    }
+
     let inner_f = Rc::new(Box::new(f));
 
     let outer_f: Bridge = Box::new(
@@ -266,12 +268,12 @@ pub fn listen<
         qmk_sys::transaction_register_rpc(
             channel.to_qmk_id(),
             Some(match channel {
-                Channel::AutoSync => bridge_sync,
+                Channel::AutoSync => return,
+                Channel::Debug => return,
                 Channel::A => bridge_a,
                 Channel::B => bridge_b,
                 Channel::C => bridge_c,
                 Channel::D => bridge_d,
-                Channel::E => bridge_e,
             }),
         );
     }

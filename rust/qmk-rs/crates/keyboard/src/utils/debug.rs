@@ -10,8 +10,9 @@ use crate::{
     timer::Timer,
 };
 
+const DEBUG_CHANNEL: Channel = Channel::Debug;
 static mut SHOULD_ALLOW_DEBUG_OUTPUT: bool = true;
-static mut SECONDARY_DEBUG_BUFFER: Lazy<Vec<String>> = Lazy::new(Vec::new);
+static mut SECONDARY_DEBUG_BUFFER: Lazy<Vec<String>> = Lazy::new(|| Vec::with_capacity(32));
 static mut INFLIGHT_STRING: Option<String> = None;
 const HEADER_SIZE: usize = 4;
 
@@ -70,7 +71,7 @@ pub fn debug_log(message: &str) {
 pub fn initialise() {
     if Keyboard::is_secondary() {
         unsafe {
-            qmk_sys::transaction_register_rpc(Channel::A.to_qmk_id(), Some(debug_bridge));
+            qmk_sys::transaction_register_rpc(DEBUG_CHANNEL.to_qmk_id(), Some(debug_bridge));
         }
 
         debug_log("debug_log initialised for secondary");
@@ -92,10 +93,7 @@ unsafe extern "C" fn debug_bridge(
         let message = if let Some(message) = INFLIGHT_STRING.take() {
             message
         } else if SECONDARY_DEBUG_BUFFER.is_empty() {
-            outgoing_data[0] = 0; // This doesn't contain a message
-            outgoing_data[1] = 0; // No messages remaining in the queue
-            outgoing_data[2] = 0; // There are no bytes to read
-            outgoing_data[4] = 0; // There are no bytes still to send
+            outgoing_data.fill(0);
             return;
         } else {
             SECONDARY_DEBUG_BUFFER.remove(0)
@@ -120,12 +118,12 @@ unsafe extern "C" fn debug_bridge(
 
 pub fn check_secondary_debug_queue() {
     let mut incoming_buffer = [0u8; 32];
-    let mut inflight_string = String::with_capacity(64);
+    let mut inflight_string = Vec::with_capacity(64);
 
     loop {
         let result = unsafe {
             qmk_sys::transaction_rpc_exec(
-                Channel::A.to_qmk_id(),
+                DEBUG_CHANNEL.to_qmk_id(),
                 0,
                 core::ptr::null(),
                 incoming_buffer.len() as u8,
@@ -140,17 +138,19 @@ pub fn check_secondary_debug_queue() {
             let remaining = incoming_buffer[3] as usize;
 
             if have_a_message {
-                match str::from_utf8(&incoming_buffer[HEADER_SIZE..(string_length + HEADER_SIZE)]) {
-                    Ok(str) => unsafe {
-                        inflight_string.push_str(str);
+                inflight_string.extend_from_slice(
+                    &incoming_buffer[HEADER_SIZE..(string_length + HEADER_SIZE)],
+                );
 
-                        if remaining == 0 {
-                            qmk_sys::printf(format!("{inflight_string}\n\0").as_ptr());
+                if remaining == 0 {
+                    match str::from_utf8(&inflight_string) {
+                        Ok(str) => unsafe {
+                            qmk_sys::printf(format!("{str}\n\0").as_ptr());
                             inflight_string.clear();
+                        },
+                        Err(err) => {
+                            debug_log(&format!("unable to receive message from secondary: {err}"));
                         }
-                    },
-                    Err(err) => {
-                        debug_log(&format!("unable to receive message from secondary: {err}"));
                     }
                 }
             }
@@ -161,7 +161,7 @@ pub fn check_secondary_debug_queue() {
                 return;
             }
         } else {
-            debug_log("unable to receive from secondary");
+            debug_log("unable to communicate with secondary");
             return;
         }
     }
