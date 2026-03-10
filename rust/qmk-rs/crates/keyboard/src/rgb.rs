@@ -1,4 +1,3 @@
-use crate::state::Slime;
 use crate::utils::debug::debug_log;
 use alloc::format;
 use hid_bridge::{Empty, HsvValue, MessageType};
@@ -74,10 +73,7 @@ pub extern "C" fn rgb_matrix_indicators_advanced_rs(min: u8, max: u8) {
 
         let (red, green, blue): (u8, u8, u8) = if display_off {
             (sleep_value, sleep_value, sleep_value)
-        } else if KeyMap::get_layer() == 0
-            && (matches!(Keyboard::role(), Role::Primary)
-                || matches!(state.page_clock.state.secondary_slime.get(), Slime::Green))
-        {
+        } else if KeyMap::get_layer() == 0 && matches!(Keyboard::role(), Role::Primary) {
             (0x0, awake_value, 0x0)
         } else {
             (awake_value, awake_value / 2, 0x0)

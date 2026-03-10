@@ -12,7 +12,7 @@ use crate::{
 #[derive(Debug)]
 pub struct State {
     pub widget_os: WidgetState<widgets::os::State>,
-    pub widget_layer: WidgetState<widgets::layer::State>,
+    pub widget_layer: WidgetState<widgets::layers::State>,
     pub widget_image: WidgetState<widgets::image::State>,
 }
 
@@ -20,7 +20,7 @@ impl Default for State {
     fn default() -> Self {
         State {
             widget_os: widgets::os::initial(),
-            widget_layer: widgets::layer::initial(),
+            widget_layer: widgets::layers::initial(),
             widget_image: widgets::image::initial(
                 Slime::Green.image(),
                 crate::utils::Alignment::Trailing,

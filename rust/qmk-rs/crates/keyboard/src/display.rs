@@ -71,6 +71,7 @@ pub struct Display {
     actual_device: qmk_sys::painter_device_t,
     pub small_font: Font,
     pub large_font: Font,
+    pub huge_font: Font,
 }
 
 #[allow(dead_code)]
@@ -100,8 +101,9 @@ impl Display {
             );
         }
 
-        let small_font = Font::new(unsafe { &qmk_sys::font_pragmata });
-        let large_font = Font::new(unsafe { &qmk_sys::font_pragmata });
+        let small_font = Font::new(unsafe { &qmk_sys::font_font_small });
+        let large_font = Font::new(unsafe { &qmk_sys::font_font_large });
+        let huge_font = Font::new(unsafe { &qmk_sys::font_font_huge });
 
         let mut device_buffer = vec![0_u8; 64_801];
         let device = unsafe {
@@ -144,6 +146,7 @@ impl Display {
             actual_device,
             small_font,
             large_font,
+            huge_font,
         }
     }
 
@@ -295,5 +298,42 @@ impl Display {
             qmk_sys::qp_flush(self.actual_device);
             qmk_sys::qp_flush(self.device);
         }
+    }
+
+    pub fn reset_clip(&mut self) {
+        self.set_clip(self.bounds);
+    }
+
+    pub fn set_clip(&mut self, rect: Rect) {
+        unsafe {
+            qmk_sys::qp_viewport(
+                self.device,
+                rect.origin.x,
+                rect.origin.y,
+                rect.origin.x + rect.size.width,
+                rect.origin.y + rect.size.height,
+            );
+        }
+    }
+
+    pub fn test(&mut self) {
+        const width: usize = 30;
+        const height: usize = 30;
+
+        let red = 0xFFu16;
+        let green = 0x00u16;
+        let blue = 0x00u16;
+        let colour: u16 = ((blue & 0b11111000) << 8) | ((red & 0b11111100) << 3) | (green >> 3);
+        let mut buf = vec![colour; width * height];
+
+        self.set_clip(Rect::new(10, 10, width as u16, height as u16));
+        unsafe {
+            qmk_sys::qp_pixdata(
+                self.device,
+                buf.as_ptr() as *const core::ffi::c_void,
+                width as u32 * height as u32,
+            );
+        }
+        // self.reset_clip();
     }
 }

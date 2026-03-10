@@ -6,8 +6,9 @@ use crate::{
 };
 
 pub mod clock;
+pub mod huge_layer;
 pub mod image;
-pub mod layer;
+pub mod layers;
 pub mod os;
 pub mod progress;
 

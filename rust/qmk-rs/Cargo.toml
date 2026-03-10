@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/impl",
+    "crates/keyboard",
     "crates/qmk_sys"
 ]
 

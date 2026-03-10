@@ -14,10 +14,9 @@ const HEADER_PATHS: &[&str] = &[
     "../../../../quantum/rgb_matrix/rgb_matrix.h",
     "../../../../quantum/split_common/transactions.h",
     "../../../../quantum/keymap_extras/keymap_uk.h",
-    "../../../../keyboards/mechboards/common/qp_font/pragmata.qff.h",
-    "../../../../keyboards/mechboards/common/qp_font/pixellari18.qff.h",
-    "../../../../keyboards/mechboards/common/qp_font/pixellari24.qff.h",
-    "../../../../keyboards/mechboards/common/qp_images/solaire.qgf.h",
+    "../../../../keyboards/mechboards/common/qp_font/font_small.qff.h",
+    "../../../../keyboards/mechboards/common/qp_font/font_large.qff.h",
+    "../../../../keyboards/mechboards/common/qp_font/font_huge.qff.h",
     "../../../../keyboards/mechboards/common/qp_images/ChefSlime.qgf.h",
     "../../../../keyboards/mechboards/common/qp_images/GarbageSlime.qgf.h",
     // This must be last

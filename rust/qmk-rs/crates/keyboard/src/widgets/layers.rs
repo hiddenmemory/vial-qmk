@@ -7,7 +7,7 @@ use crate::{
     widgets::{UpdateOutcome, WidgetState},
 };
 
-const PADDING: u16 = 6;
+const PADDING: u16 = 8;
 
 #[derive(Debug, Default)]
 pub struct State {

@@ -61,6 +61,8 @@ fn render(display: &mut Display, state: &mut State) {
     }
 
     state.render(state.page(), display);
+
+    // display.test();
     display.flush();
 }
 
@@ -150,7 +152,6 @@ pub extern "C" fn housekeeping_task_user_rs() {
     state.last_sync = Timer::read();
 
     if Keyboard::is_primary() {
-        state.page_clock.flip_slime();
         state.incr_blue();
     }
 }

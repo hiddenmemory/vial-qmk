@@ -31,15 +31,6 @@ impl Slime {
 
 impl MakeSyncableValue for Slime {}
 
-impl Slime {
-    pub fn other(&self) -> Slime {
-        match self {
-            Slime::Green => Slime::Orange,
-            Slime::Orange => Slime::Green,
-        }
-    }
-}
-
 pub struct State {
     pub primary_stack: Vec<Page>,
     pub secondary_stack: SyncValue<Vec<Page>>,

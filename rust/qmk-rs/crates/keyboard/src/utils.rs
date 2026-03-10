@@ -139,7 +139,7 @@ impl Rect {
 
         let bottom = Rect::new(
             self.origin.x,
-            self.origin.y + y,
+            self.origin.y + y + 1,
             self.size.width,
             self.size.height - y,
         );
