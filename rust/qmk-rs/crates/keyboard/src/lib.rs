@@ -36,6 +36,7 @@ mod tween;
 mod usb;
 mod utils;
 mod widgets;
+mod eeprom;
 
 fn render_frame() {
     let state = state::get();

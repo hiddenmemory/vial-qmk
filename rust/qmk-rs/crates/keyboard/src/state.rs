@@ -1,8 +1,11 @@
 use alloc::vec;
 use alloc::vec::Vec;
+use qmk_sys::BACKLIGHT_LEVELS;
 use serde::{Deserialize, Serialize};
 
-use crate::constants::{RUN_LOOP_FRAME_TIME, RUN_LOOP_START_DELAY, SCREEN_FADE_DURATION};
+use crate::constants::{RUN_LOOP_FRAME_TIME, RUN_LOOP_START_DELAY};
+use crate::display;
+use crate::eeprom::EEPROM;
 use crate::keyboard::Keyboard;
 use crate::{
     display::Display,
@@ -40,6 +43,7 @@ pub struct State {
     pub last_sync: u32,
     pub blue_index: SyncValue<u8>,
     pub frame_time: SyncValue<u32>,
+    pub display_brightness: SyncValue<u8>,
     pub screen_fade_in: Tween<u8>,
     pub screen_fade_out: Tween<u8>,
     pub debug_output: SyncValue<bool>,
@@ -63,6 +67,8 @@ macro_rules! get_page {
 #[allow(dead_code)]
 impl State {
     pub fn new() -> State {
+        let default_brightness = EEPROM::get_backlight();
+
         State {
             primary_stack: vec![Page::default_primary_page()],
             secondary_stack: SyncValue::with_fn(
@@ -76,9 +82,25 @@ impl State {
             last_sync: 0,
             blue_index: SyncValue::new(SyncKey::BlueDot, 0),
             frame_time: SyncValue::new(SyncKey::FrameTime, RUN_LOOP_FRAME_TIME),
-            screen_fade_in: Tween::new(0, Display::max_brightness() / 2 + 1, SCREEN_FADE_DURATION)
+            display_brightness: SyncValue::with_fn(
+                SyncKey::DisplayBrightness,
+                default_brightness.min(BACKLIGHT_LEVELS as u8),
+                |_, new| {
+                    let level = *new;
+                    let state = get();
+
+                    state.screen_fade_in.duration = level as u32 * 100;
+                    state.screen_fade_in.to = level;
+
+                    state.screen_fade_out.duration = level as u32 * 100;
+                    state.screen_fade_out.to = level;
+
+                    display::get().set_brightness(level);
+                },
+            ),
+            screen_fade_in: Tween::new(0, default_brightness, default_brightness as u32 * 100)
                 .delay(RUN_LOOP_START_DELAY),
-            screen_fade_out: Tween::new(0, Display::max_brightness() / 2 + 1, 0)
+            screen_fade_out: Tween::new(0, default_brightness, 0)
                 .direction(TweenDirection::Backwards), // It doesn't matter duration is 0, we always set it to zero
             debug_output: SyncValue::with_fn(SyncKey::DebugOutput, true, |_, value| {
                 crate::utils::debug::debug_toggle(*value);

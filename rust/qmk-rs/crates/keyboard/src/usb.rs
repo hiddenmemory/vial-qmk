@@ -23,6 +23,7 @@ pub fn initialise() {
     listeners::listen_for_set_frame_time();
     listeners::listen_for_heap_usage();
     listeners::listen_for_wake();
+    listeners::listen_for_display_brightness();
 
     debug_log("[hid] initialised");
 }

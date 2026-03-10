@@ -43,8 +43,8 @@ impl TweenCurve {
 pub struct Tween<Value: Tweenable> {
     pub duration: u32,
     direction: TweenDirection,
-    from: Value,
-    to: Value,
+    pub from: Value,
+    pub to: Value,
     start: u32,
     finish: u32,
     curve: TweenCurve,

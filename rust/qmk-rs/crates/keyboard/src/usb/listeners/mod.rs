@@ -1,7 +1,7 @@
 use alloc::format;
 use hid_bridge::{BoolValue, Empty, MessageType, U32Value};
 
-use crate::{heap, keyboard::Keyboard, state, utils::debug::debug_log};
+use crate::{eeprom::EEPROM, heap, keyboard::Keyboard, state, utils::debug::debug_log};
 
 pub(crate) fn listen_for_heap_usage() {
     super::listen::<Empty, Empty, _>(MessageType::HeapUsage, |_, _| {
@@ -56,4 +56,26 @@ pub(crate) fn listen_for_wake() {
         Keyboard::trigger_fake_activity();
         (Some(MessageType::Acknowledge), None)
     });
+}
+
+pub(crate) fn listen_for_display_brightness() {
+    super::listen::<hid_bridge::U8ValueWithFlag, hid_bridge::Empty, _>(
+        MessageType::SetDisplayBrightness,
+        |_, value| {
+            if let Some(value) = value {
+                state::get()
+                    .display_brightness
+                    .set(value.value.min(qmk_sys::BACKLIGHT_LEVELS as u8));
+
+                if value.flag {
+                    unsafe {
+                        qmk_sys::backlight_level(value.value);
+                    }
+
+                    EEPROM::set_backlight(value.value);
+                }
+            }
+            (Some(MessageType::Acknowledge), None)
+        },
+    );
 }

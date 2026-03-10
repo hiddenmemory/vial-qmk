@@ -31,9 +31,27 @@ enum Command {
     DebugOn,
     DebugOff,
     QueryFrameTime,
-    FrameTime { time: u32 },
+    FrameTime {
+        time: u32,
+    },
     QueryRgbHsv,
-    SetRgbHsv { h: u16, s: u8, v: u8 },
+    SetRgbHsv {
+        h: u16,
+        s: u8,
+        v: u8,
+    },
+    DisplayBrightness {
+        level: u8,
+        #[arg(
+            long,
+            value_name = "BOOL",
+            require_equals = true,
+            num_args = 0..=1,
+            default_missing_value = "false",
+            value_enum
+        )]
+        save: bool,
+    },
 }
 
 fn parse_id(s: &str) -> anyhow::Result<u16> {
@@ -131,6 +149,13 @@ fn main() -> anyhow::Result<()> {
         Command::SetRgbHsv { h, s, v } => (
             MessageType::SetRgbHsv,
             postcard::to_allocvec(&hid_bridge::HsvValue { h, s, v })?,
+        ),
+        Command::DisplayBrightness { level, save } => (
+            MessageType::SetDisplayBrightness,
+            postcard::to_allocvec(&hid_bridge::U8ValueWithFlag {
+                value: level,
+                flag: save,
+            })?,
         ),
     };
 

@@ -47,6 +47,7 @@ pub enum MessageType {
     SetFrameTime,
     QueryRgbHsv,
     SetRgbHsv,
+    SetDisplayBrightness,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -95,6 +96,12 @@ pub struct HsvValue {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct U8Value {
     pub value: u8,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct U8ValueWithFlag {
+    pub value: u8,
+    pub flag: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
