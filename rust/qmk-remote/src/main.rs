@@ -78,8 +78,6 @@ fn main() -> anyhow::Result<()> {
     File::open("config.json5")?.read_to_string(&mut content)?;
     let config: Config = json5::from_str(&content)?;
 
-    println!("Config = {:#?}", config);
-
     let api = HidApi::new()?;
 
     let info = api
