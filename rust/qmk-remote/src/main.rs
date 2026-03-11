@@ -1,24 +1,24 @@
 use clap::{Parser, Subcommand};
 use hid_bridge::MessageType;
 use hidapi::HidApi;
-use std::time::Duration;
-use std::time::{SystemTime, UNIX_EPOCH};
+use serde::{Deserialize, Serialize};
+use std::{fs::File, io::Read, time::Duration};
+
+mod date_time;
+
+#[derive(Serialize, Deserialize, Debug)]
+struct Config {
+    vid: u16,
+    pid: u16,
+    usage_page: u16,
+    lat: f64,
+    lon: f64,
+    timezone: String,
+}
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
 struct Arguments {
-    /// Vendor ID in hex (e.g. 04d8) or decimal (e.g. 1240). Required for all commands.
-    #[arg(short, long)]
-    vid: String,
-
-    /// Product ID in hex (e.g. 003f) or decimal (e.g. 63). Required for all commands.
-    #[arg(short, long)]
-    pid: String,
-
-    /// Usage Page in hex (e.g. 003f) or decimal (e.g. 63). Required for all commands.
-    #[arg(short, long)]
-    usage_page: String,
-
     #[command(subcommand)]
     command: Command,
 }
@@ -54,16 +54,6 @@ enum Command {
     },
 }
 
-fn parse_id(s: &str) -> anyhow::Result<u16> {
-    let s = s.trim();
-    if let Some(hex) = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")) {
-        u16::from_str_radix(hex, 16).map_err(|e| anyhow::anyhow!("bad hex '{s}': {e}"))
-    } else {
-        s.parse::<u16>()
-            .map_err(|e| anyhow::anyhow!("bad decimal '{s}': {e}"))
-    }
-}
-
 fn print_packet(label: &str, data: &[u8]) {
     print!("{label} ({} bytes): ", data.len());
     for b in data {
@@ -81,31 +71,30 @@ fn print_packet(label: &str, data: &[u8]) {
     println!("|");
 }
 
-fn seconds_since_midnight() -> u32 {
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("Time went backwards");
-    (now.as_secs() % 86_400) as u32
-}
-
 fn main() -> anyhow::Result<()> {
     let arguments = Arguments::parse();
 
-    let vid = parse_id(&arguments.vid)?;
-    let pid = parse_id(&arguments.pid)?;
-    let usage_page = parse_id(&arguments.usage_page)?;
+    let mut content = String::new();
+    File::open("config.json5")?.read_to_string(&mut content)?;
+    let config: Config = json5::from_str(&content)?;
+
+    println!("Config = {:#?}", config);
 
     let api = HidApi::new()?;
 
     let info = api
         .device_list()
-        .find(|d| d.vendor_id() == vid && d.product_id() == pid && d.usage_page() == usage_page)
+        .find(|d| {
+            d.vendor_id() == config.vid
+                && d.product_id() == config.pid
+                && d.usage_page() == config.usage_page
+        })
         .ok_or_else(|| {
             anyhow::anyhow!(
                 "No HID device found with VID={:04x} PID={:04x} usage_page={:04x}",
-                vid,
-                pid,
-                usage_page
+                config.vid,
+                config.pid,
+                config.usage_page
             )
         })?;
 
@@ -114,9 +103,12 @@ fn main() -> anyhow::Result<()> {
     let (message_type, body) = match arguments.command {
         Command::Time => (
             MessageType::DateTime,
-            postcard::to_allocvec(&hid_bridge::DateTime {
-                seconds_since_midnight: seconds_since_midnight(),
-            })?,
+            postcard::to_allocvec(&date_time::solar_times(
+                config.lat,
+                config.lon,
+                &config.timezone,
+                None,
+            )?)?,
         ),
         Command::Wake => (
             MessageType::WakeDisplays,
