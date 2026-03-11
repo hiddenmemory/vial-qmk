@@ -53,26 +53,25 @@ impl<const Size: usize> Image for ImageBRG565A<Size> {
             return None;
         }
 
-        let pixel_length: usize = if self.has_alpha { 4 } else { 3 };
+        let pixel_length: usize = if self.has_alpha { 3 } else { 2 };
 
         let base = ((y * self.width as usize) + x) * pixel_length;
 
-        let red = self.pixels[base];
-        let green = self.pixels[base + 1];
-        let blue = self.pixels[base + 2];
+        let h_byte = self.pixels[base];
+        let l_byte = self.pixels[base + 1];
 
         let alpha = if self.has_alpha {
-            Some(self.pixels[base + 3])
+            Some(self.pixels[base + 2])
         } else {
             None
         };
 
-        // // BBBBB RRRRRR GGGGG
-        // let red = ((pixel & 0x7E0) >> 2) as u8;
-        // let green = ((pixel & 0x1F) << 3) as u8;
-        // let blue = ((pixel & 0xF800) >> 9) as u8;
-
-        Some((red, green, blue, alpha))
+        Some((
+            h_byte & 0xF8,
+            (h_byte << 5) | (l_byte >> 5 << 2),
+            l_byte << 3,
+            alpha,
+        ))
     }
     fn get_width(&self) -> u8 {
         self.width

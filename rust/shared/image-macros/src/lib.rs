@@ -22,12 +22,9 @@ fn to_format(img: ImageBuffer<Rgb<u8>, Vec<u8>>, width: usize, height: usize) ->
             let red = pixel[0];
             let green = pixel[1];
             let blue = pixel[2];
-            let alpha = pixel[3];
 
-            pixel_output.push(red);
-            pixel_output.push(green);
-            pixel_output.push(blue);
-            pixel_output.push(alpha);
+            pixel_output.push((red & 0xF8) | (green >> 5));
+            pixel_output.push((green & 0b11111100) << 3 | (blue >> 3));
         }
     }
 
@@ -45,9 +42,8 @@ fn to_format_a(img: ImageBuffer<Rgba<u8>, Vec<u8>>, width: usize, height: usize)
             let blue = pixel[2];
             let alpha = pixel[3];
 
-            pixel_output.push(red);
-            pixel_output.push(green);
-            pixel_output.push(blue);
+            pixel_output.push((red & 0xF8) | (green >> 5));
+            pixel_output.push((green & 0b11111100) << 3 | (blue >> 3));
             pixel_output.push(alpha);
         }
     }
