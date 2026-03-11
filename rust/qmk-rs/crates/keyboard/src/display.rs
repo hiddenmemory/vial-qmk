@@ -317,8 +317,23 @@ impl Display {
     }
 
     pub fn render_image(&self, position: Point, image: &dyn include_image::Image, bg: Option<HSV>) {
-        let width = image.get_width();
-        let height = image.get_height();
+        let width = image.get_width() as u16;
+        let height = image.get_height() as u16;
+
+        let bottom = position.y + height;
+        let right = position.x + width;
+
+        let height = if bottom > self.bounds.size.height {
+            height - (bottom - self.bounds.size.height)
+        } else {
+            height
+        };
+
+        let width = if right > self.bounds.size.width {
+            width - (right - self.bounds.size.width)
+        } else {
+            height
+        };
 
         // Allocate a buffer to flip onto the surface
         let mut buf = vec![0u8; width as usize * height as usize * 2];
@@ -386,12 +401,7 @@ impl Display {
         }
 
         // Set the clip rect
-        self.set_clip(Rect::new(
-            position.x,
-            position.y,
-            width as u16,
-            height as u16,
-        ));
+        self.set_clip(Rect::new(position.x, position.y, width, height));
 
         // Push the buffer to the display
         unsafe {
