@@ -1,10 +1,15 @@
 use alloc::format;
-use hid_bridge::{BoolValue, Empty, MessageType, U32Value};
+use hid_bridge::{BoolValue, DateTime, Empty, MessageType, U32Value};
 
-use crate::{eeprom::EEPROM, heap, keyboard::Keyboard, state, utils::debug::debug_log};
+use crate::{
+    eeprom::EEPROM, heap, keyboard::Keyboard, state, sync::syncing::impl_serde::MakeSyncableValue,
+    utils::debug::debug_log,
+};
+
+impl MakeSyncableValue for DateTime {}
 
 pub(crate) fn listen_for_heap_usage() {
-    super::listen::<Empty, Empty, _>(MessageType::HeapUsage, |_, _| {
+    super::listen_and_forward::<Empty, Empty, _>(MessageType::HeapUsage, true, |_, _| {
         let (total, used, free) = heap::usage();
 
         debug_log(&format!(
@@ -59,13 +64,16 @@ pub(crate) fn listen_for_wake() {
 }
 
 pub(crate) fn listen_for_display_brightness() {
-    super::listen::<hid_bridge::U8ValueWithFlag, hid_bridge::Empty, _>(
+    super::listen_and_forward::<hid_bridge::U8ValueWithFlag, hid_bridge::Empty, _>(
         MessageType::SetDisplayBrightness,
+        true,
         |_, value| {
             if let Some(value) = value {
-                state::get()
-                    .display_brightness
-                    .set(value.value.min(qmk_sys::BACKLIGHT_LEVELS as u8));
+                if Keyboard::is_primary() {
+                    state::get()
+                        .display_brightness
+                        .set(value.value.min(qmk_sys::BACKLIGHT_LEVELS as u8));
+                }
 
                 if value.flag {
                     unsafe {
@@ -75,6 +83,33 @@ pub(crate) fn listen_for_display_brightness() {
                     EEPROM::set_backlight(value.value);
                 }
             }
+            (Some(MessageType::Acknowledge), None)
+        },
+    );
+}
+
+pub(crate) fn listen_for_date_time() {
+    super::listen::<hid_bridge::DateTime, hid_bridge::Empty, _>(
+        MessageType::DateTime,
+        |_, request: Option<hid_bridge::DateTime>| {
+            let state = state::get();
+
+            if let Some(value) = request {
+                fn output(tag: &str, seconds: u32) {
+                    let (h, m, s) = crate::utils::calculate_time(seconds);
+                    debug_log(&format!("{tag} = {h:0>2}:{m:0>2}:{s:0>2}"));
+                }
+
+                output("since midnight", value.seconds_since_midnight);
+                output("dawn", value.dawn_secs);
+                output("sunrise", value.sunrise_secs);
+                output("sunset", value.sunset_secs);
+                output("dusk", value.dusk_secs);
+
+                state.page_clock.set_seconds(value.seconds_since_midnight);
+                state.date_time.set(value);
+            }
+
             (Some(MessageType::Acknowledge), None)
         },
     );

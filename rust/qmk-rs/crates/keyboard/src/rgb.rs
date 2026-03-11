@@ -10,10 +10,6 @@ use crate::{
 };
 
 pub fn initialise() {
-    if !Keyboard::is_primary() {
-        return;
-    }
-
     usb::listen::<Empty, HsvValue, _>(MessageType::QueryRgbHsv, |_, _| {
         let hsv = unsafe { qmk_sys::rgb_matrix_get_hsv() };
 
@@ -32,7 +28,7 @@ pub fn initialise() {
         )
     });
 
-    usb::listen::<HsvValue, Empty, _>(MessageType::SetRgbHsv, |_, values| {
+    usb::listen_and_forward::<HsvValue, Empty, _>(MessageType::SetRgbHsv, true, |_, values| {
         if let Some(hsv) = values {
             debug_log(&format!(
                 "Setting RGB HSV current values: (h: {}, s: {}, v: {})",

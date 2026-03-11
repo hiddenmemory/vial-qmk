@@ -22,6 +22,7 @@ pub enum SyncKey {
     SecondaryDisplayStack,
     DebugOutput,
     DisplayBrightness,
+    DateTime,
 }
 
 const MAGIC: u8 = 0x07;

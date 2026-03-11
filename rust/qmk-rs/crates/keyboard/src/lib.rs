@@ -20,6 +20,7 @@ use crate::utils::{HSV_LIME, HSV_ORANGE};
 mod constants;
 mod detect_os;
 mod display;
+mod eeprom;
 mod font;
 mod heap;
 mod image;
@@ -36,7 +37,6 @@ mod tween;
 mod usb;
 mod utils;
 mod widgets;
-mod eeprom;
 
 fn render_frame() {
     let state = state::get();
@@ -85,7 +85,9 @@ fn run_loop() {
 pub extern "C" fn keyboard_post_init_rs() {
     heap::initialise();
     debug::initialise();
+    usb::initialise();
     sync::initialise();
+    rgb::initialise();
 
     debug_log("initialising the display");
     let display = display::initialise();

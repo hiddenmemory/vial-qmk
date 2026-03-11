@@ -47,6 +47,7 @@ pub struct State {
     pub screen_fade_in: Tween<u8>,
     pub screen_fade_out: Tween<u8>,
     pub debug_output: SyncValue<bool>,
+    pub date_time: SyncValue<hid_bridge::DateTime>,
 }
 
 macro_rules! get_page {
@@ -85,18 +86,7 @@ impl State {
             display_brightness: SyncValue::with_fn(
                 SyncKey::DisplayBrightness,
                 default_brightness.min(BACKLIGHT_LEVELS as u8),
-                |_, new| {
-                    let level = *new;
-                    let state = get();
-
-                    state.screen_fade_in.duration = level as u32 * 100;
-                    state.screen_fade_in.to = level;
-
-                    state.screen_fade_out.duration = level as u32 * 100;
-                    state.screen_fade_out.to = level;
-
-                    display::get().set_brightness(level);
-                },
+                State::update_screen_brightness,
             ),
             screen_fade_in: Tween::new(0, default_brightness, default_brightness as u32 * 100)
                 .delay(RUN_LOOP_START_DELAY),
@@ -105,7 +95,21 @@ impl State {
             debug_output: SyncValue::with_fn(SyncKey::DebugOutput, true, |_, value| {
                 crate::utils::debug::debug_toggle(*value);
             }),
+            date_time: SyncValue::new(SyncKey::DateTime, Default::default()),
         }
+    }
+
+    fn update_screen_brightness(_previous: &u8, new: &u8) {
+        let level = *new;
+        let state = get();
+
+        state.screen_fade_in.duration = level as u32 * 100;
+        state.screen_fade_in.to = level;
+
+        state.screen_fade_out.duration = level as u32 * 100;
+        state.screen_fade_out.to = level;
+
+        display::get().set_brightness(level);
     }
 
     pub fn incr_blue(&mut self) {

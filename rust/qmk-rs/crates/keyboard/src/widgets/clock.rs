@@ -47,13 +47,8 @@ fn request_size(display: &Display, _state: &State) -> Size {
 fn update(state: &mut State) -> UpdateOutcome {
     let actual_seconds = state.seconds_since_midnight + (Timer::elapsed(state.timer_at_set) / 1000);
 
-    let seconds_in_minute = 60u32;
-    let seconds_in_hour = 3_600u32;
-
-    let actual_hours = ((actual_seconds / seconds_in_hour) as u8) % 24;
-    let actual_seconds = actual_seconds % seconds_in_hour;
-    let actual_minutes = (actual_seconds / seconds_in_minute) as u8;
-    let actual_seconds = (actual_seconds % seconds_in_minute) as u8;
+    let (actual_hours, actual_minutes, actual_seconds) =
+        crate::utils::calculate_time(actual_seconds);
 
     let needs_display = state.hours != actual_hours || state.minutes != actual_minutes;
 

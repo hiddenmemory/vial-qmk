@@ -193,3 +193,15 @@ impl<Value: Eq> core::ops::DerefMut for TrackValue<Value> {
         &mut self.value
     }
 }
+
+pub fn calculate_time(seconds: u32) -> (u8, u8, u8) {
+    let seconds_in_minute = 60u32;
+    let seconds_in_hour = 3_600u32;
+
+    let actual_hours = ((seconds / seconds_in_hour) as u8) % 24;
+    let actual_seconds = seconds % seconds_in_hour;
+    let actual_minutes = (actual_seconds / seconds_in_minute) as u8;
+    let actual_seconds = (actual_seconds % seconds_in_minute) as u8;
+
+    (actual_hours, actual_minutes, actual_seconds)
+}

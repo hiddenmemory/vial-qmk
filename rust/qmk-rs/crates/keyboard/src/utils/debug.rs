@@ -161,7 +161,7 @@ pub fn check_secondary_debug_queue() {
                 return;
             }
         } else {
-            debug_log("unable to communicate with secondary");
+            debug_log("[debug] unable to communicate with secondary");
             return;
         }
     }
