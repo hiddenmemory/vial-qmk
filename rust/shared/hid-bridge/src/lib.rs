@@ -32,7 +32,7 @@ extern crate alloc;
 use serde::{Deserialize, Serialize};
 
 pub const QMK_RS_CHANNEL: u8 = 0x42;
-pub const QMK_RS_CHANNEL_LENGTH: usize = 4;
+pub const QMK_RS_CHANNEL_LENGTH: usize = 10;
 pub const QMK_RS_HEADER_LENGTH: usize = 5;
 
 #[repr(u8)]
@@ -71,9 +71,24 @@ impl MessageHeader {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct DateTime {
+    /// Current time — seconds elapsed since local midnight right now.
     pub seconds_since_midnight: u32,
+    /// Civil dawn — sun is 6° below horizon; usable outdoor light begins.
+    pub dawn_secs: u32,
+    /// Sunrise — upper limb of the sun crosses the horizon.
+    pub sunrise_secs: u32,
+    /// Sunset — upper limb of the sun drops below the horizon.
+    pub sunset_secs: u32,
+    /// Civil dusk — sun is 6° below horizon; usable outdoor light ends.
+    pub dusk_secs: u32,
+}
+
+impl DateTime {
+    pub fn usable(&self) -> bool {
+        self.seconds_since_midnight > 0
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
