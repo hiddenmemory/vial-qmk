@@ -4,7 +4,7 @@ use crate::{
     display::Display,
     timer::Timer,
     utils::{HSV_BLACK, Rect, Size},
-    widgets::{UpdateOutcome, WidgetState},
+    widgets::{Outcome, WidgetState},
 };
 
 #[derive(Debug, Default)]
@@ -44,7 +44,7 @@ fn request_size(display: &Display, _state: &State) -> Size {
     }
 }
 
-fn update(state: &mut State) -> UpdateOutcome {
+fn update(state: &mut State) -> Outcome {
     let actual_seconds = state.seconds_since_midnight + (Timer::elapsed(state.timer_at_set) / 1000);
 
     let (actual_hours, actual_minutes, actual_seconds) =
@@ -57,9 +57,9 @@ fn update(state: &mut State) -> UpdateOutcome {
     state.seconds = actual_seconds;
 
     if needs_display {
-        UpdateOutcome::RequiresRedraw
+        Outcome::Redraw
     } else {
-        UpdateOutcome::NoChange
+        Outcome::NoChange
     }
 }
 

@@ -4,7 +4,7 @@ use crate::{
     display::Display,
     keymap::KeyMap,
     utils::{HSV_BLACK, HSV_WHITE, Rect, Size},
-    widgets::{UpdateOutcome, WidgetState},
+    widgets::{Outcome, WidgetState},
 };
 
 const PADDING: u16 = 8;
@@ -31,7 +31,7 @@ fn request_size(display: &Display, _state: &State) -> Size {
     }
 }
 
-fn update(state: &mut State) -> UpdateOutcome {
+fn update(state: &mut State) -> Outcome {
     let current_layer = KeyMap::get_layer();
 
     if state
@@ -40,9 +40,9 @@ fn update(state: &mut State) -> UpdateOutcome {
         .unwrap_or(true)
     {
         state.active_layer = Some(current_layer);
-        UpdateOutcome::RequiresRedraw
+        Outcome::Redraw
     } else {
-        UpdateOutcome::NoChange
+        Outcome::NoChange
     }
 }
 

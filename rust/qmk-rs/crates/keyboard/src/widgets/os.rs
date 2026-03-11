@@ -2,7 +2,7 @@ use crate::{
     detect_os::HostOS,
     display::Display,
     utils::{HSV_BLACK, HSV_WHITE, Rect, Size},
-    widgets::{UpdateOutcome, WidgetState},
+    widgets::{Outcome, WidgetState},
 };
 
 #[derive(Debug, Default)]
@@ -27,15 +27,15 @@ fn request_size(display: &Display, _state: &State) -> Size {
     }
 }
 
-fn update(state: &mut State) -> UpdateOutcome {
+fn update(state: &mut State) -> Outcome {
     let current_os = HostOS::current();
 
     if state.os.ne(&current_os) {
         state.os = current_os;
-        return UpdateOutcome::RequiresRedraw;
+        return Outcome::Redraw;
     }
 
-    UpdateOutcome::NoChange
+    Outcome::NoChange
 }
 
 fn render(display: &Display, state: &mut State, frame: Rect, _first_render: bool) {

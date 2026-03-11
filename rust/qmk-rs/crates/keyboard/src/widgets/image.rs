@@ -1,7 +1,7 @@
 use crate::{
     display::Display,
     utils::{Alignment, Rect, Size, Sizeable},
-    widgets::{UpdateOutcome, WidgetState},
+    widgets::{Outcome, WidgetState},
 };
 
 #[derive(Debug, Default)]
@@ -13,23 +13,30 @@ pub struct State {
 
 #[allow(dead_code)]
 impl WidgetState<State> {
-    pub fn set_image(&mut self, image: &'static dyn include_image::Image) -> UpdateOutcome {
-        let existing_id = self
+    pub fn set_image(&mut self, image: &'static dyn include_image::Image) -> Outcome {
+        let (existing_id, existing_size) = self
             .state
             .image
             .as_ref()
-            .map(|image| image.get_id())
-            .unwrap_or(0);
+            .map(|image| (image.get_id(), image.size()))
+            .unwrap_or((0, Size::default()));
 
-        let incoming_id = image.get_id();
+        let (incoming_id, incoming_size) = (image.get_id(), image.size());
 
         // No need to update the image
         if existing_id.eq(&incoming_id) {
-            return UpdateOutcome::NoChange;
+            // Images aren't mutable, so we keep it as is
+            return Outcome::NoChange;
         }
 
         self.state.image = Some(image);
-        self.set_needs_redraw()
+        self.set_needs_redraw();
+
+        if existing_size.ne(&incoming_size) {
+            Outcome::Layout
+        } else {
+            Outcome::Redraw
+        }
     }
 
     pub fn set_vertical(&mut self, alignment: Alignment) -> &mut Self {
@@ -69,7 +76,6 @@ fn request_size(_display: &Display, state: &State) -> Size {
 }
 
 fn render(display: &Display, state: &mut State, frame: Rect, _first_render: bool) {
-
     if let Some(image) = &state.image {
         let position = frame.position(
             image.size(),

@@ -4,7 +4,7 @@ use crate::{
     display::Display,
     keyboard::{Keyboard, Role, Side},
     sync::syncing::impl_serde::MakeSyncableValue,
-    widgets::UpdateOutcome,
+    widgets::Outcome,
 };
 
 pub mod clock;
@@ -62,7 +62,7 @@ pub struct PageState<Inner: Default + core::fmt::Debug> {
     pub ignores_accent: bool,
 
     pub layout_fn: fn(&Display, &mut Inner),
-    pub update_fn: fn(&mut Inner) -> UpdateOutcome,
+    pub update_fn: fn(&mut Inner) -> Outcome,
     pub render_fn: fn(&Display, &mut Inner, bool),
 }
 
@@ -85,8 +85,8 @@ fn empty_layout<Inner: Default + core::fmt::Debug>(_display: &Display, _state: &
     Default::default()
 }
 
-fn empty_update<Inner: Default + core::fmt::Debug>(_state: &mut Inner) -> UpdateOutcome {
-    UpdateOutcome::NoChange
+fn empty_update<Inner: Default + core::fmt::Debug>(_state: &mut Inner) -> Outcome {
+    Outcome::NoChange
 }
 
 fn empty_render<Inner: Default + core::fmt::Debug>(
@@ -106,11 +106,16 @@ impl<Inner: Default + core::fmt::Debug> PageState<Inner> {
         self.requires_layout = false;
     }
 
-    pub fn update(&mut self) -> UpdateOutcome {
+    pub fn update(&mut self) -> Outcome {
         let outcome = (self.update_fn)(&mut self.state);
 
         if outcome.requires_redraw() {
             self.set_needs_redraw();
+        }
+
+        if matches!(outcome, Outcome::Layout) {
+            self.requires_layout = true;
+            self.first_render = true;
         }
 
         outcome

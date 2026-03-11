@@ -7,7 +7,7 @@ use crate::{
     sync::{SyncKey, SyncValue},
     timer::Timer,
     update_widgets,
-    widgets::{self, UpdateOutcome, WidgetState},
+    widgets::{self, Outcome, WidgetState},
 };
 
 #[derive(Debug)]
@@ -50,7 +50,7 @@ pub fn initial() -> PageState<State> {
     }
 }
 
-pub fn update(state: &mut State) -> UpdateOutcome {
+pub fn update(state: &mut State) -> Outcome {
     let outcome = update_widgets! { state =>
         widget_clock,
         widget_huge_layer

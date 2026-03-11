@@ -6,6 +6,7 @@ use crate::constants::{RUN_LOOP_FRAME_TIME, RUN_LOOP_START_DELAY};
 use crate::display;
 use crate::eeprom::EEPROM;
 use crate::keyboard::Keyboard;
+use crate::widgets::Outcome;
 use crate::{
     display::Display,
     pages::{self, Page, PageState},
@@ -104,8 +105,8 @@ impl State {
     pub fn layout(&mut self, page: Page, display: &Display) {
         get_page!(self, page => layout(display));
     }
-    pub fn update(&mut self, page: Page) {
-        get_page!(self, page => update());
+    pub fn update(&mut self, page: Page) -> Outcome {
+        get_page!(self, page => update())
     }
     pub fn render(&mut self, page: Page, display: &Display) {
         get_page!(self, page => render(display));

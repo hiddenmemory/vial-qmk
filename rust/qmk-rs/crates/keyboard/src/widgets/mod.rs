@@ -13,28 +13,29 @@ pub mod os;
 pub mod progress;
 
 #[derive(Copy, Clone)]
-pub enum UpdateOutcome {
-    RequiresRedraw,
+pub enum Outcome {
+    Layout,
+    Redraw,
     NoChange,
 }
 
-impl core::ops::Add for UpdateOutcome {
-    type Output = UpdateOutcome;
+impl core::ops::Add for Outcome {
+    type Output = Outcome;
 
     fn add(self, rhs: Self) -> Self::Output {
-        if matches!(self, UpdateOutcome::RequiresRedraw)
-            || matches!(rhs, UpdateOutcome::RequiresRedraw)
-        {
-            UpdateOutcome::RequiresRedraw
+        if matches!(self, Outcome::Layout) || matches!(rhs, Outcome::Layout) {
+            Outcome::Layout
+        } else if matches!(self, Outcome::Redraw) || matches!(rhs, Outcome::Redraw) {
+            Outcome::Redraw
         } else {
-            UpdateOutcome::NoChange
+            Outcome::NoChange
         }
     }
 }
 
-impl UpdateOutcome {
+impl Outcome {
     pub fn requires_redraw(&self) -> bool {
-        matches!(self, UpdateOutcome::RequiresRedraw)
+        matches!(self, Outcome::Redraw) || matches!(self, Outcome::Layout)
     }
 }
 
@@ -46,7 +47,7 @@ pub struct WidgetState<Inner: Default + core::fmt::Debug> {
     pub ignores_accent: bool,
 
     pub layout_size_fn: fn(&Display, &Inner) -> Size,
-    pub update_fn: fn(&mut Inner) -> UpdateOutcome,
+    pub update_fn: fn(&mut Inner) -> Outcome,
     pub render_fn: fn(&Display, &mut Inner, Rect, bool),
 }
 
@@ -71,8 +72,8 @@ fn empty_size<Inner: Default + core::fmt::Debug>(_display: &Display, _state: &In
     Default::default()
 }
 
-fn empty_update<Inner: Default + core::fmt::Debug>(_state: &mut Inner) -> UpdateOutcome {
-    UpdateOutcome::NoChange
+fn empty_update<Inner: Default + core::fmt::Debug>(_state: &mut Inner) -> Outcome {
+    Outcome::NoChange
 }
 
 fn empty_render<Inner: Default + core::fmt::Debug>(
@@ -84,16 +85,16 @@ fn empty_render<Inner: Default + core::fmt::Debug>(
 }
 
 impl<Inner: Default + core::fmt::Debug> WidgetState<Inner> {
-    pub fn set_needs_redraw(&mut self) -> UpdateOutcome {
+    pub fn set_needs_redraw(&mut self) -> Outcome {
         self.requires_redraw = true;
-        UpdateOutcome::RequiresRedraw
+        Outcome::Redraw
     }
 
     pub fn layout_size(&self, display: &Display) -> Size {
         (self.layout_size_fn)(display, &self.state)
     }
 
-    pub fn update(&mut self) -> UpdateOutcome {
+    pub fn update(&mut self) -> Outcome {
         let outcome = (self.update_fn)(&mut self.state);
 
         if outcome.requires_redraw() {
@@ -118,7 +119,7 @@ impl<Inner: Default + core::fmt::Debug> WidgetState<Inner> {
 macro_rules! update_widgets {
     ( $state:ident => $( $state_path:ident ), * ) => {
         {
-            let mut outcome = UpdateOutcome::NoChange;
+            let mut outcome = Outcome::NoChange;
             $(
                 outcome = outcome + $state. $state_path .update();
             )*

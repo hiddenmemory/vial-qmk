@@ -5,7 +5,7 @@ use crate::{
     pages::PageState,
     render_widgets, update_widgets,
     utils::Rect,
-    widgets::{self, UpdateOutcome, WidgetState},
+    widgets::{self, Outcome, WidgetState},
 };
 
 #[derive(Debug)]
@@ -37,25 +37,23 @@ pub fn initial() -> PageState<State> {
     }
 }
 
-fn update_image(state: &mut State) -> UpdateOutcome {
-    let slime: &dyn include_image::Image = if KeyMap::get_layer() > 0 {
+fn update_image(state: &mut State) -> Outcome {
+    let image: &dyn include_image::Image = if KeyMap::get_layer() > 0 {
         &crate::images::ORANGE
     } else {
         &crate::images::GREEN
     };
 
-    if matches!(
-        state.widget_image.set_image(slime),
-        UpdateOutcome::RequiresRedraw
-    ) {
+    let outcome = state.widget_image.set_image(image);
+
+    if outcome.requires_redraw() {
         state.widget_layer.set_needs_redraw();
-        UpdateOutcome::RequiresRedraw
-    } else {
-        UpdateOutcome::NoChange
     }
+
+    outcome
 }
 
-pub fn update(state: &mut State) -> UpdateOutcome {
+pub fn update(state: &mut State) -> Outcome {
     let outcome = update_widgets! { state =>
          widget_os,
          widget_layer,
@@ -72,15 +70,12 @@ pub fn layout(display: &Display, state: &mut State) {
     };
 
     let size = state.widget_image.layout_size(display);
-    let max_height = crate::images::GREEN
-        .height
-        .max(crate::images::ORANGE.height) as u16;
 
     state.widget_image.layout_frame = Rect::new(
         0,
-        display.bounds.size.height - max_height,
+        display.bounds.size.height - size.height,
         size.width,
-        max_height,
+        size.height,
     );
 }
 

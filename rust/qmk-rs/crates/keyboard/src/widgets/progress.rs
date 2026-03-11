@@ -1,7 +1,7 @@
 use crate::{
     display::Display,
     utils::{Rect, Size},
-    widgets::{UpdateOutcome, WidgetState},
+    widgets::{Outcome, WidgetState},
 };
 
 #[derive(Debug, Default)]
@@ -13,16 +13,16 @@ pub struct State {
 
 #[allow(dead_code)]
 impl WidgetState<State> {
-    pub fn set_progress(&mut self, progress: u8) -> UpdateOutcome {
+    pub fn set_progress(&mut self, progress: u8) -> Outcome {
         if self.state.progress != progress {
             self.state.progress = progress;
             self.set_needs_redraw()
         } else {
-            UpdateOutcome::NoChange
+            Outcome::NoChange
         }
     }
 
-    pub fn set_progress_using(&mut self, value: u32, total: u32) -> UpdateOutcome {
+    pub fn set_progress_using(&mut self, value: u32, total: u32) -> Outcome {
         let progress = ((value as f32) / (total as f32) * 100.0f32) as u8;
         self.set_progress(progress)
     }

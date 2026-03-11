@@ -121,7 +121,7 @@ pub trait Sizeable {
     fn size(&self) -> Size;
 }
 
-#[derive(Default, Debug, Copy, Clone)]
+#[derive(Default, Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Size {
     pub width: u16,
     pub height: u16,
