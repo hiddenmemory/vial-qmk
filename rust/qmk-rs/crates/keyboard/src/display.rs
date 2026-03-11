@@ -300,40 +300,108 @@ impl Display {
         }
     }
 
-    pub fn reset_clip(&mut self) {
+    pub fn reset_clip(&self) {
         self.set_clip(self.bounds);
     }
 
-    pub fn set_clip(&mut self, rect: Rect) {
+    pub fn set_clip(&self, rect: Rect) {
         unsafe {
             qmk_sys::qp_viewport(
                 self.device,
                 rect.origin.x,
                 rect.origin.y,
-                rect.origin.x + rect.size.width,
-                rect.origin.y + rect.size.height,
+                rect.origin.x + rect.size.width - 1,
+                rect.origin.y + rect.size.height - 1,
             );
         }
     }
 
-    pub fn test(&mut self) {
-        const WIDTH: usize = 30;
-        const HEIGHT: usize = 30;
+    pub fn render_image(&self, position: Point, image: &dyn include_image::Image, bg: Option<HSV>) {
+        let width = image.get_width();
+        let height = image.get_height();
 
-        let red = 0xFFu16;
-        let green = 0x00u16;
-        let blue = 0x00u16;
-        let colour: u16 = ((blue & 0b11111000) << 8) | ((red & 0b11111100) << 3) | (green >> 3);
-        let buf = vec![colour; WIDTH * HEIGHT];
+        // Allocate a buffer to flip onto the surface
+        let mut buf = vec![0u8; width as usize * height as usize * 2];
 
-        self.set_clip(Rect::new(10, 10, WIDTH as u16, HEIGHT as u16));
+        // Pre-calculate a background colour as to_rgb needs only doing once if we have a colour
+        let (maybe_bgr, maybe_bgg, maybe_bgb) = if let Some(bg) = bg {
+            bg.to_rgb8()
+        } else {
+            (0, 0, 0)
+        };
+
+        for y in 0..height {
+            for x in 0..width {
+                let Some((fg_r, fg_g, fg_b, fg_a)) = image.get_pixel(x as usize, y as usize) else {
+                    continue;
+                };
+
+                // Get the background image for the pixel
+                let (bg_r, bg_g, bg_b) = if bg.is_some() {
+                    // Use pre-calculated if we have been given an image
+                    (maybe_bgr, maybe_bgg, maybe_bgb)
+                } else {
+                    // Work out where in our self.device_buffer the backing pixel is
+                    let backing_x = position.x as usize + x as usize;
+                    let backing_y = position.y as usize + y as usize;
+                    let backing_offset =
+                        ((backing_y * self.bounds.size.width as usize) + backing_x) * 2;
+
+                    // Get the pixel bytes
+                    let h_byte = self.device_buffer[backing_offset];
+                    let l_byte = self.device_buffer[backing_offset + 1];
+
+                    // Decode the pixels into RGB values
+                    (
+                        h_byte & 0xF8,
+                        (h_byte << 5) | (l_byte >> 5 << 2),
+                        l_byte << 3,
+                    )
+                };
+
+                #[inline]
+                fn blend(fg: u8, bg: u8, alpha: Option<u8>) -> u8 {
+                    // This was lifted from: gdk-pixbuf:
+                    // https://gitlab.gnome.org/GNOME/gdk-pixbuf/-/blob/5a5d37bd6696c96d5567c2199cac0fbc5b86d0e8/gdk-pixbuf/pixops/pixops.c#L407-411
+                    let r_src: u16 = fg as u16;
+                    let r_dst: u16 = bg as u16;
+                    let a0 = alpha.unwrap_or(0xFF) as u16;
+                    let a1 = 0xff - a0;
+                    let tmp = a0 * r_src + a1 * r_dst + 0x80;
+                    ((tmp + (tmp >> 8)) >> 8) as u8
+                }
+
+                // Blend the pixels...
+                let red = blend(fg_r, bg_r, fg_a);
+                let green = blend(fg_g, bg_g, fg_a);
+                let blue = blend(fg_b, bg_b, fg_a);
+
+                // ... get the offset ...
+                let offset = ((y as usize * width as usize) + x as usize) * 2;
+
+                // Update the buffer!
+                buf[offset] = (red & 0xF8) | (green >> 5);
+                buf[offset + 1] = (green & 0b11111100) << 3 | (blue >> 3);
+            }
+        }
+
+        // Set the clip rect
+        self.set_clip(Rect::new(
+            position.x,
+            position.y,
+            width as u16,
+            height as u16,
+        ));
+
+        // Push the buffer to the display
         unsafe {
             qmk_sys::qp_pixdata(
                 self.device,
                 buf.as_ptr() as *const core::ffi::c_void,
-                WIDTH as u32 * HEIGHT as u32,
+                width as u32 * height as u32,
             );
         }
-        // self.reset_clip();
+
+        self.reset_clip();
     }
 }

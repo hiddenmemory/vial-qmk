@@ -1,22 +1,20 @@
-use once_cell::sync::Lazy;
-
 use crate::{
     display::Display,
     utils::{Point, Size, Sizeable},
 };
 
 #[derive(Copy, Clone)]
-pub struct Image {
+pub struct QmkImage {
     pub id: usize,
     pub size: Size,
     pub frames: u16,
     pub handle: qmk_sys::painter_image_handle_t,
 }
 
-unsafe impl Sync for Image {}
-unsafe impl Send for Image {}
+unsafe impl Sync for QmkImage {}
+unsafe impl Send for QmkImage {}
 
-impl core::fmt::Debug for Image {
+impl core::fmt::Debug for QmkImage {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Image")
             .field("id", &self.id)
@@ -27,15 +25,16 @@ impl core::fmt::Debug for Image {
     }
 }
 
-impl Image {
-    pub fn new(source: &[u8]) -> Image {
+#[allow(dead_code)]
+impl QmkImage {
+    pub fn new(source: &[u8]) -> QmkImage {
         unsafe {
             let handle = qmk_sys::qp_load_image_mem(source.as_ptr() as *const core::ffi::c_void);
             let id = source.as_ptr() as usize;
             let width = (*handle).width;
             let height = (*handle).height;
             let frames = (*handle).frame_count;
-            Image {
+            QmkImage {
                 id,
                 size: Size { width, height },
                 frames,
@@ -51,19 +50,14 @@ impl Image {
     }
 }
 
-impl Sizeable for Image {
+impl Sizeable for QmkImage {
     fn size(&self) -> Size {
         self.size
     }
 }
 
-impl Sizeable for &Image {
+impl Sizeable for &QmkImage {
     fn size(&self) -> Size {
         self.size
     }
 }
-
-pub static GREEN_SLIME: Lazy<Image> =
-    Lazy::new(|| unsafe { Image::new(&qmk_sys::gfx_GarbageSlime) });
-
-pub static ORANGE_SLIME: Lazy<Image> = Lazy::new(|| unsafe { Image::new(&qmk_sys::gfx_ChefSlime) });

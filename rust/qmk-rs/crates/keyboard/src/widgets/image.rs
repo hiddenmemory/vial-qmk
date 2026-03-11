@@ -1,22 +1,27 @@
 use crate::{
     display::Display,
-    image::Image,
-    utils::{Alignment, Rect, Size},
+    utils::{Alignment, Rect, Size, Sizeable},
     widgets::{UpdateOutcome, WidgetState},
 };
 
 #[derive(Debug, Default)]
 pub struct State {
-    image: Option<&'static Image>,
+    image: Option<&'static dyn include_image::Image>,
     horizonal_alignment: Alignment,
     vertical_alignment: Alignment,
 }
 
 #[allow(dead_code)]
 impl WidgetState<State> {
-    pub fn set_image(&mut self, image: &'static Image) -> UpdateOutcome {
-        let existing_id = self.state.image.as_ref().map(|image| image.id).unwrap_or(0);
-        let incoming_id = image.id;
+    pub fn set_image(&mut self, image: &'static dyn include_image::Image) -> UpdateOutcome {
+        let existing_id = self
+            .state
+            .image
+            .as_ref()
+            .map(|image| image.get_id())
+            .unwrap_or(0);
+
+        let incoming_id = image.get_id();
 
         // No need to update the image
         if existing_id.eq(&incoming_id) {
@@ -38,7 +43,10 @@ impl WidgetState<State> {
     }
 }
 
-pub fn initial(image: &'static Image, vertical_alignment: Alignment) -> WidgetState<State> {
+pub fn initial(
+    image: &'static dyn include_image::Image,
+    vertical_alignment: Alignment,
+) -> WidgetState<State> {
     WidgetState {
         state: State {
             image: Some(image),
@@ -56,17 +64,19 @@ fn request_size(_display: &Display, state: &State) -> Size {
     state
         .image
         .as_ref()
-        .map(|image| image.size)
+        .map(|image| image.size())
         .unwrap_or_default()
 }
 
 fn render(display: &Display, state: &mut State, frame: Rect, _first_render: bool) {
-    display.fill_rect(frame, *display.clear_colour);
 
     if let Some(image) = &state.image {
-        image.draw(
-            frame.position(*image, state.horizonal_alignment, state.vertical_alignment),
-            display,
+        let position = frame.position(
+            image.size(),
+            state.horizonal_alignment,
+            state.vertical_alignment,
         );
+
+        display.render_image(position, *image, None) // Some(*display.accent_colour));
     }
 }

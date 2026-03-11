@@ -1,7 +1,6 @@
 use alloc::vec;
 use alloc::vec::Vec;
 use qmk_sys::BACKLIGHT_LEVELS;
-use serde::{Deserialize, Serialize};
 
 use crate::constants::{RUN_LOOP_FRAME_TIME, RUN_LOOP_START_DELAY};
 use crate::display;
@@ -9,30 +8,10 @@ use crate::eeprom::EEPROM;
 use crate::keyboard::Keyboard;
 use crate::{
     display::Display,
-    image::{GREEN_SLIME, Image, ORANGE_SLIME},
     pages::{self, Page, PageState},
-    sync::{SyncKey, SyncValue, syncing::impl_serde::MakeSyncableValue},
+    sync::{SyncKey, SyncValue},
     tween::{Tween, TweenDirection},
 };
-
-#[derive(Default, Eq, PartialEq, Copy, Clone, Debug, Serialize, Deserialize)]
-pub enum Slime {
-    Green,
-    #[default]
-    Orange,
-}
-
-impl Slime {
-    #[inline]
-    pub fn image(&self) -> &'static Image {
-        match self {
-            Slime::Green => &GREEN_SLIME,
-            Slime::Orange => &ORANGE_SLIME,
-        }
-    }
-}
-
-impl MakeSyncableValue for Slime {}
 
 pub struct State {
     pub primary_stack: Vec<Page>,

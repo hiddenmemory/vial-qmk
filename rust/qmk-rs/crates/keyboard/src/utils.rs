@@ -19,6 +19,73 @@ impl HSV {
             v: actual_v,
         }
     }
+
+    #[allow(dead_code)]
+    pub const fn from_rgb(r: u8, g: u8, b: u8) -> HSV {
+        let r = r as f32 / 255.0;
+        let g = g as f32 / 255.0;
+        let b = b as f32 / 255.0;
+
+        let max = r.max(g).max(b);
+        let min = r.min(g).min(b);
+        let delta = max - min;
+
+        // Value
+        let v = (max / 255.0 * 100.0) as u8;
+
+        // Saturation
+        let s = if v == 0 {
+            0
+        } else {
+            (delta / max * 100.0) as u8
+        };
+
+        // Hue
+        let h = if delta == 0.0 {
+            0.0
+        } else if max == r {
+            60.0 * (((g - b) / delta) % 6.0)
+        } else if max == g {
+            60.0 * (((b - r) / delta) + 2.0)
+        } else {
+            60.0 * (((r - g) / delta) + 4.0)
+        };
+
+        // Normalize hue to [0, 360)
+        let h = if h < 0.0 { h + 360.0 } else { h };
+
+        HSV::from(h as u16, s, v)
+    }
+
+    pub fn to_rgb8(self) -> (u8, u8, u8) {
+        if self.s == 0 {
+            return (self.v, self.v, self.v);
+        }
+
+        let h = (self.h as f32 / 255.0) * 360.0;
+        let s = self.s as f32 / 255.0;
+        let v = self.v as f32 / 255.0;
+
+        let h = h / 60.0;
+        let i = h as u32;
+        let f = h - (h as u32) as f32;
+
+        let p = v * (1.0 - s);
+        let q = v * (1.0 - s * f);
+        let t = v * (1.0 - s * (1.0 - f));
+
+        let (r, g, b) = match i % 6 {
+            0 => (v, t, p),
+            1 => (q, v, p),
+            2 => (p, v, t),
+            3 => (p, q, v),
+            4 => (t, p, v),
+            5 => (v, p, q),
+            _ => unreachable!(),
+        };
+
+        ((r * 255.0) as u8, (g * 255.0) as u8, (b * 255.0) as u8)
+    }
 }
 
 pub static HSV_WHITE: HSV = HSV::from(0, 0, 100);

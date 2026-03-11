@@ -23,11 +23,12 @@ mod display;
 mod eeprom;
 mod font;
 mod heap;
-mod image;
+mod images;
 mod keyboard;
 mod keymap;
 mod pages;
 mod primary;
+mod qmk_image;
 mod rgb;
 mod secondary;
 mod state;
@@ -63,7 +64,6 @@ fn render(display: &mut Display, state: &mut State) {
 
     state.render(state.page(), display);
 
-    // display.test();
     display.flush();
 }
 

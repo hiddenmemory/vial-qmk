@@ -17,8 +17,6 @@ const HEADER_PATHS: &[&str] = &[
     "../../../../keyboards/mechboards/common/qp_font/font_small.qff.h",
     "../../../../keyboards/mechboards/common/qp_font/font_large.qff.h",
     "../../../../keyboards/mechboards/common/qp_font/font_huge.qff.h",
-    "../../../../keyboards/mechboards/common/qp_images/ChefSlime.qgf.h",
-    "../../../../keyboards/mechboards/common/qp_images/GarbageSlime.qgf.h",
     // This must be last
     "../../../../keyboards/mechboards/lily58/r2g/config.h",
 ];
