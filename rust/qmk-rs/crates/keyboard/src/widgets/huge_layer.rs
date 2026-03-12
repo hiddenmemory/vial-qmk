@@ -1,10 +1,11 @@
 use alloc::format;
+use include_image::Image;
 
 use crate::{
     display::Display,
     images,
     keymap::KeyMap,
-    utils::{HSV_BLACK, Rect, Size},
+    utils::{HSV_BLACK, Rect, Size, debug::debug_log},
     widgets::{Outcome, WidgetState},
 };
 
@@ -59,10 +60,14 @@ fn render(display: &Display, state: &mut State, frame: Rect, _first_render: bool
 
     display.fill_rect(frame, *display.accent_colour);
 
-    display.render_image_slice(
-        location,
-        &images::FONT_HUGE_A,
-        slice,
-        Some(*display.accent_colour),
-    );
+    let recolour = images::FONT_HUGE_A.with_colour(0xFF, 0xFF, 0xFF);
+
+    let image: &dyn Image = if let Some(ref image) = recolour {
+        image
+    } else {
+        debug_log(&format!("unable to recolour image"));
+        &images::FONT_HUGE_A
+    };
+
+    display.render_image_slice(location, image, slice, Some(*display.accent_colour));
 }

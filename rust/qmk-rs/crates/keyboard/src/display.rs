@@ -2,6 +2,7 @@ use alloc::format;
 use alloc::vec::Vec;
 use alloc::{ffi::CString, vec};
 
+use crate::state;
 use crate::utils::debug::debug_log;
 use crate::utils::{HSV_BLACK, HSV_ORANGE};
 use crate::{
@@ -10,7 +11,6 @@ use crate::{
     sync::{SyncKey, SyncValue},
     utils::{HSV, Point, Rect, Size, TrackValue},
 };
-use crate::{state, utils};
 
 static mut DISPLAY: Option<Display> = None;
 
@@ -384,23 +384,23 @@ impl Display {
                     let backing_offset =
                         ((backing_y * self.bounds.size.width as usize) + backing_x) * 2;
 
-                    utils::pixels::rgb565_to_rgb888(
+                    include_image::rgb565_to_rgb888(
                         self.device_buffer[backing_offset],
                         self.device_buffer[backing_offset + 1],
                     )
                 };
 
                 // Blend the pixels...
-                let red = utils::pixels::blend_pixel(fg_r, bg_r, fg_a);
-                let green = utils::pixels::blend_pixel(fg_g, bg_g, fg_a);
-                let blue = utils::pixels::blend_pixel(fg_b, bg_b, fg_a);
+                let red = include_image::blend_pixel(fg_r, bg_r, fg_a);
+                let green = include_image::blend_pixel(fg_g, bg_g, fg_a);
+                let blue = include_image::blend_pixel(fg_b, bg_b, fg_a);
 
                 // ... get the offset ...
                 let offset = (((y - slice.origin.y) as usize * width as usize)
                     + (x - slice.origin.x) as usize)
                     * 2;
 
-                let (high, low) = utils::pixels::rgb888_to_rgb565(red, green, blue);
+                let (high, low) = include_image::rgb888_to_rgb565(red, green, blue);
 
                 // Update the buffer!
                 buf[offset] = high;
