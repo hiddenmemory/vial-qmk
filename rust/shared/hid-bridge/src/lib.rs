@@ -106,6 +106,7 @@ pub struct HsvValue {
     pub h: u16,
     pub s: u8,
     pub v: u8,
+    pub flag: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

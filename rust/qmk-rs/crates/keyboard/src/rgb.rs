@@ -24,6 +24,7 @@ pub fn initialise() {
                 h: hsv.v as u16,
                 s: hsv.s,
                 v: hsv.v,
+                flag: false,
             }),
         )
     });
@@ -36,11 +37,19 @@ pub fn initialise() {
             ));
 
             unsafe {
-                qmk_sys::rgb_matrix_sethsv(
-                    hsv.h,
-                    hsv.s,
-                    hsv.v.min(qmk_sys::RGB_MATRIX_MAXIMUM_BRIGHTNESS as u8),
-                );
+                if hsv.flag {
+                    qmk_sys::rgb_matrix_sethsv(
+                        hsv.h,
+                        hsv.s,
+                        hsv.v.min(qmk_sys::RGB_MATRIX_MAXIMUM_BRIGHTNESS as u8),
+                    );
+                } else {
+                    qmk_sys::rgb_matrix_sethsv_noeeprom(
+                        hsv.h,
+                        hsv.s,
+                        hsv.v.min(qmk_sys::RGB_MATRIX_MAXIMUM_BRIGHTNESS as u8),
+                    );
+                }
             }
         }
 

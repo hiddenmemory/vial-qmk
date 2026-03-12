@@ -1,7 +1,7 @@
+use alloc::format;
 use alloc::vec::Vec;
 use alloc::{ffi::CString, vec};
 
-use crate::state;
 use crate::utils::debug::debug_log;
 use crate::utils::{HSV_BLACK, HSV_ORANGE};
 use crate::{
@@ -10,6 +10,7 @@ use crate::{
     sync::{SyncKey, SyncValue},
     utils::{HSV, Point, Rect, Size, TrackValue},
 };
+use crate::{state, utils};
 
 static mut DISPLAY: Option<Display> = None;
 
@@ -332,7 +333,7 @@ impl Display {
         let width = if right > self.bounds.size.width {
             width - (right - self.bounds.size.width)
         } else {
-            height
+            width
         };
 
         // Allocate a buffer to flip onto the surface
@@ -362,41 +363,24 @@ impl Display {
                     let backing_offset =
                         ((backing_y * self.bounds.size.width as usize) + backing_x) * 2;
 
-                    // Get the pixel bytes
-                    let h_byte = self.device_buffer[backing_offset];
-                    let l_byte = self.device_buffer[backing_offset + 1];
-
-                    // Decode the pixels into RGB values
-                    (
-                        h_byte & 0xF8,
-                        (h_byte << 5) | (l_byte >> 5 << 2),
-                        l_byte << 3,
+                    utils::pixels::rgb565_to_rgb888(
+                        self.device_buffer[backing_offset],
+                        self.device_buffer[backing_offset + 1],
                     )
                 };
 
-                #[inline]
-                fn blend(fg: u8, bg: u8, alpha: Option<u8>) -> u8 {
-                    // This was lifted from: gdk-pixbuf:
-                    // https://gitlab.gnome.org/GNOME/gdk-pixbuf/-/blob/5a5d37bd6696c96d5567c2199cac0fbc5b86d0e8/gdk-pixbuf/pixops/pixops.c#L407-411
-                    let r_src: u16 = fg as u16;
-                    let r_dst: u16 = bg as u16;
-                    let a0 = alpha.unwrap_or(0xFF) as u16;
-                    let a1 = 0xff - a0;
-                    let tmp = a0 * r_src + a1 * r_dst + 0x80;
-                    ((tmp + (tmp >> 8)) >> 8) as u8
-                }
-
                 // Blend the pixels...
-                let red = blend(fg_r, bg_r, fg_a);
-                let green = blend(fg_g, bg_g, fg_a);
-                let blue = blend(fg_b, bg_b, fg_a);
+                let red = utils::pixels::blend_pixel(fg_r, bg_r, fg_a);
+                let green = utils::pixels::blend_pixel(fg_g, bg_g, fg_a);
+                let blue = utils::pixels::blend_pixel(fg_b, bg_b, fg_a);
 
                 // ... get the offset ...
                 let offset = ((y as usize * width as usize) + x as usize) * 2;
+                let (high, low) = utils::pixels::rgb888_to_rgb565(red, green, blue);
 
                 // Update the buffer!
-                buf[offset] = (red & 0xF8) | (green >> 5);
-                buf[offset + 1] = (green & 0b11111100) << 3 | (blue >> 3);
+                buf[offset] = high;
+                buf[offset + 1] = low;
             }
         }
 

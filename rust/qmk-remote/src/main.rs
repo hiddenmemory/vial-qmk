@@ -39,6 +39,15 @@ enum Command {
         h: u16,
         s: u8,
         v: u8,
+        #[arg(
+            long,
+            value_name = "BOOL",
+            require_equals = true,
+            num_args = 0..=1,
+            default_missing_value = "false",
+            value_enum
+        )]
+        save: bool,
     },
     DisplayBrightness {
         level: u8,
@@ -136,9 +145,14 @@ fn main() -> anyhow::Result<()> {
             MessageType::QueryRgbHsv,
             postcard::to_allocvec(&hid_bridge::Empty {})?,
         ),
-        Command::SetRgbHsv { h, s, v } => (
+        Command::SetRgbHsv { h, s, v, save } => (
             MessageType::SetRgbHsv,
-            postcard::to_allocvec(&hid_bridge::HsvValue { h, s, v })?,
+            postcard::to_allocvec(&hid_bridge::HsvValue {
+                h,
+                s,
+                v,
+                flag: save,
+            })?,
         ),
         Command::DisplayBrightness { level, save } => (
             MessageType::SetDisplayBrightness,

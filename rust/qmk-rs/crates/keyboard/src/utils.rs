@@ -1,4 +1,5 @@
 pub mod debug;
+pub mod pixels;
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Copy, Clone, PartialEq, Eq)]
