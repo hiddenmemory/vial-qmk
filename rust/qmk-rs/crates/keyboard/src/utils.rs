@@ -108,6 +108,7 @@ impl Point {
         Point { x, y }
     }
 
+    #[allow(dead_code)]
     pub fn shift_v(&mut self, amount: i16) {
         if amount < 0 {
             self.y = self.y.saturating_sub(amount.unsigned_abs());

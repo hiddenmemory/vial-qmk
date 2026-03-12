@@ -5,7 +5,7 @@ use crate::{
     display::Display,
     images,
     keymap::KeyMap,
-    utils::{HSV_BLACK, Rect, Size, debug::debug_log},
+    utils::{Rect, Size, debug::debug_log},
     widgets::{Outcome, WidgetState},
 };
 
@@ -65,7 +65,6 @@ fn render(display: &Display, state: &mut State, frame: Rect, _first_render: bool
     let image: &dyn Image = if let Some(ref image) = recolour {
         image
     } else {
-        debug_log(&format!("unable to recolour image"));
         &images::FONT_HUGE_A
     };
 

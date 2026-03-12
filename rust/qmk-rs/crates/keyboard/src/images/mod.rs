@@ -2,8 +2,6 @@ use include_image::include_image;
 
 use crate::utils::{Size, Sizeable};
 
-include_image!("./images/test.png");
-include_image!("./images/test2.png");
 include_image!("./images/lego.png");
 include_image!("./images/green.png", 4);
 include_image!("./images/orange.png", 4);
