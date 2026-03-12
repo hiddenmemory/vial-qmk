@@ -39,7 +39,7 @@ pub fn initial() -> PageState<State> {
 
 fn update_image(state: &mut State) -> Outcome {
     let image: &dyn include_image::Image = if KeyMap::get_layer() > 0 {
-        &crate::images::ORANGE
+        &crate::images::TEST2
     } else {
         &crate::images::GREEN
     };

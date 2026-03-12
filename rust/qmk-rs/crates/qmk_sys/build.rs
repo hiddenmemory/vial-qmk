@@ -16,7 +16,6 @@ const HEADER_PATHS: &[&str] = &[
     "../../../../quantum/keymap_extras/keymap_uk.h",
     "../../../../keyboards/mechboards/common/qp_font/font_small.qff.h",
     "../../../../keyboards/mechboards/common/qp_font/font_large.qff.h",
-    "../../../../keyboards/mechboards/common/qp_font/font_huge.qff.h",
     // This must be last
     "../../../../keyboards/mechboards/lily58/r2g/config.h",
 ];

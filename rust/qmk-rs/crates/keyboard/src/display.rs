@@ -72,7 +72,6 @@ pub struct Display {
     actual_device: qmk_sys::painter_device_t,
     pub small_font: Font,
     pub large_font: Font,
-    pub huge_font: Font,
 }
 
 #[allow(dead_code)]
@@ -104,7 +103,6 @@ impl Display {
 
         let small_font = Font::new(unsafe { &qmk_sys::font_font_small });
         let large_font = Font::new(unsafe { &qmk_sys::font_font_large });
-        let huge_font = Font::new(unsafe { &qmk_sys::font_font_huge });
 
         let mut device_buffer = vec![0_u8; 64_801];
         let device = unsafe {
@@ -147,7 +145,6 @@ impl Display {
             actual_device,
             small_font,
             large_font,
-            huge_font,
         }
     }
 
@@ -318,23 +315,47 @@ impl Display {
     }
 
     pub fn render_image(&self, position: Point, image: &dyn include_image::Image, bg: Option<HSV>) {
-        let width = image.get_width() as u16;
-        let height = image.get_height() as u16;
+        self.render_image_slice(
+            position,
+            image,
+            Rect::new(0, 0, image.get_width() as u16, image.get_height() as u16),
+            bg,
+        );
+    }
 
-        let bottom = position.y + height;
-        let right = position.x + width;
+    pub fn render_image_slice(
+        &self,
+        position: Point,
+        image: &dyn include_image::Image,
+        slice: Rect,
+        bg: Option<HSV>,
+    ) {
+        debug_log(&format!("rendering slice {slice:?}"));
+        debug_log(&format!(
+            " of image {}, {}",
+            image.get_width(),
+            image.get_height()
+        ));
 
-        let height = if bottom > self.bounds.size.height {
-            height - (bottom - self.bounds.size.height)
+        let width = slice.size.width;
+        let height = slice.size.height;
+
+        let render_bottom = position.y + height;
+        let render_right = position.x + width;
+
+        let height = if render_bottom > self.bounds.size.height {
+            height - (render_bottom - self.bounds.size.height)
         } else {
             height
         };
 
-        let width = if right > self.bounds.size.width {
-            width - (right - self.bounds.size.width)
+        let width = if render_right > self.bounds.size.width {
+            width - (render_right - self.bounds.size.width)
         } else {
             width
         };
+
+        debug_log(&format!("width: {width}, height: {height}"));
 
         // Allocate a buffer to flip onto the surface
         let mut buf = vec![0u8; width as usize * height as usize * 2];
@@ -346,8 +367,8 @@ impl Display {
             (0, 0, 0)
         };
 
-        for y in 0..height {
-            for x in 0..width {
+        for y in slice.origin.y..(slice.origin.y + height) {
+            for x in slice.origin.x..(slice.origin.x + width) {
                 let Some((fg_r, fg_g, fg_b, fg_a)) = image.get_pixel(x as usize, y as usize) else {
                     continue;
                 };
@@ -358,8 +379,8 @@ impl Display {
                     (maybe_bgr, maybe_bgg, maybe_bgb)
                 } else {
                     // Work out where in our self.device_buffer the backing pixel is
-                    let backing_x = position.x as usize + x as usize;
-                    let backing_y = position.y as usize + y as usize;
+                    let backing_x = position.x as usize + (x - slice.origin.x) as usize;
+                    let backing_y = position.y as usize + (y - slice.origin.y) as usize;
                     let backing_offset =
                         ((backing_y * self.bounds.size.width as usize) + backing_x) * 2;
 
@@ -375,7 +396,10 @@ impl Display {
                 let blue = utils::pixels::blend_pixel(fg_b, bg_b, fg_a);
 
                 // ... get the offset ...
-                let offset = ((y as usize * width as usize) + x as usize) * 2;
+                let offset = (((y - slice.origin.y) as usize * width as usize)
+                    + (x - slice.origin.x) as usize)
+                    * 2;
+
                 let (high, low) = utils::pixels::rgb888_to_rgb565(red, green, blue);
 
                 // Update the buffer!

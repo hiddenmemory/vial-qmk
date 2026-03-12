@@ -50,6 +50,7 @@ fn rgb_to_index_key(r: u8, g: u8, b: u8) -> usize {
 }
 
 fn to_rgba_palette256_with_alpha(
+    path: &str,
     img: ImageBuffer<Rgba<u8>, Vec<u8>>,
     width: usize,
     height: usize,
@@ -77,6 +78,7 @@ fn to_rgba_palette256_with_alpha(
                 palette_store.insert(key, id);
                 id
             } else {
+                println!("[include_image] too many colours for {path}");
                 return None;
             };
 
@@ -90,6 +92,7 @@ fn to_rgba_palette256_with_alpha(
     }
 
     let mut output = Vec::with_capacity(1 + palette_output.len() + pixel_output.len());
+    println!("[include_image] {path} has {} colours", palette_store.len());
     output.push(palette_store.len() as u8);
     output.extend_from_slice(&palette_output);
     output.extend_from_slice(&pixel_output);
@@ -108,7 +111,7 @@ fn path_to_image(path: &str) -> (Vec<u8>, String, String, usize, usize, bool) {
 
     let (struct_name, bytes) = {
         let pixel = to_rgb565a_with_alpha(img.to_rgba8(), width, height, has_alpha);
-        let palette = to_rgba_palette256_with_alpha(img.to_rgba8(), width, height, has_alpha);
+        let palette = to_rgba_palette256_with_alpha(path, img.to_rgba8(), width, height, has_alpha);
 
         if let Some(palette) = palette
             && palette.len() < pixel.len()
@@ -154,9 +157,6 @@ pub fn include_image(input: TokenStream) -> TokenStream {
     let parsed_args = parse_macro_input!(input as ParsedArgs);
     let (pixel_bytes, struct_name, name, width, height, has_alpha) =
         path_to_image(&parsed_args.path);
-
-    let width = width as u8;
-    let height = height as u8;
 
     let byte_array = pixel_bytes.as_slice();
     let byte_count = byte_array.len();

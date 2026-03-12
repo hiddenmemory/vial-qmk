@@ -10,10 +10,10 @@ pub trait Image {
     fn get_pixel(&self, x: usize, y: usize) -> Option<(u8, u8, u8, Option<u8>)> {
         None
     }
-    fn get_width(&self) -> u8 {
+    fn get_width(&self) -> usize {
         0
     }
-    fn get_height(&self) -> u8 {
+    fn get_height(&self) -> usize {
         0
     }
     fn get_bpp(&self) -> u8 {
@@ -38,8 +38,8 @@ impl core::fmt::Debug for dyn Image {
 
 pub struct ImageRGB565A<const Size: usize> {
     pub id: u32,
-    pub width: u8,
-    pub height: u8,
+    pub width: usize,
+    pub height: usize,
     pub has_alpha: bool,
     pub pixels: [u8; Size],
 }
@@ -73,10 +73,10 @@ impl<const Size: usize> Image for ImageRGB565A<Size> {
             alpha,
         ))
     }
-    fn get_width(&self) -> u8 {
+    fn get_width(&self) -> usize {
         self.width
     }
-    fn get_height(&self) -> u8 {
+    fn get_height(&self) -> usize {
         self.height
     }
     fn get_bpp(&self) -> u8 {
@@ -89,10 +89,16 @@ impl<const Size: usize> Image for ImageRGB565A<Size> {
 
 pub struct ImageRGBP256<const PixelSize: usize> {
     pub id: u32,
-    pub width: u8,
-    pub height: u8,
+    pub width: usize,
+    pub height: usize,
     pub has_alpha: bool,
     pub pixels: [u8; PixelSize],
+}
+
+impl<const PixelSize: usize> ImageRGBP256<PixelSize> {
+    pub fn palette_size(&self) -> usize {
+        self.pixels[0] as usize
+    }
 }
 
 impl<const PixelSize: usize> Image for ImageRGBP256<PixelSize> {
@@ -104,7 +110,7 @@ impl<const PixelSize: usize> Image for ImageRGBP256<PixelSize> {
             return None;
         }
 
-        let palette_length: usize = self.pixels[0] as usize;
+        let palette_length: usize = self.palette_size();
         let pixel_base = 1 + (palette_length * 3);
 
         let pixel_length: usize = if self.has_alpha { 2 } else { 1 };
@@ -125,10 +131,10 @@ impl<const PixelSize: usize> Image for ImageRGBP256<PixelSize> {
 
         Some((r, g, b, alpha))
     }
-    fn get_width(&self) -> u8 {
+    fn get_width(&self) -> usize {
         self.width
     }
-    fn get_height(&self) -> u8 {
+    fn get_height(&self) -> usize {
         self.height
     }
     fn get_bpp(&self) -> u8 {

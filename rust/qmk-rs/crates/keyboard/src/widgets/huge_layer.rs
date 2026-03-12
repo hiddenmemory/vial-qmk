@@ -2,6 +2,7 @@ use alloc::format;
 
 use crate::{
     display::Display,
+    images,
     keymap::KeyMap,
     utils::{HSV_BLACK, Rect, Size},
     widgets::{Outcome, WidgetState},
@@ -27,7 +28,7 @@ pub fn initial() -> WidgetState<State> {
 fn request_size(display: &Display, _state: &State) -> Size {
     Size {
         width: display.bounds.size.width,
-        height: display.huge_font.line_height + (PADDING * 2),
+        height: 97 + (PADDING * 2),
     }
 }
 
@@ -47,13 +48,21 @@ fn update(state: &mut State) -> Outcome {
 }
 
 fn render(display: &Display, state: &mut State, frame: Rect, _first_render: bool) {
-    let text = format!("{}", state.active_layer.unwrap_or(0) + 1);
+    let layer = (state.active_layer.unwrap_or(0) + 1) as u16;
+    let slice = Rect::new(50 * layer, 0, 50, 97);
 
-    display.center_text(
-        &display.huge_font,
-        frame,
-        HSV_BLACK,
-        *display.accent_colour,
-        &text,
-    )
+    let location = frame.position(
+        slice.size,
+        crate::utils::Alignment::Center,
+        crate::utils::Alignment::Center,
+    );
+
+    display.fill_rect(frame, *display.accent_colour);
+
+    display.render_image_slice(
+        location,
+        &images::FONT_HUGE_A,
+        slice,
+        Some(*display.accent_colour),
+    );
 }
