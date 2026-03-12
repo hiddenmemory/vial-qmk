@@ -36,7 +36,7 @@ impl core::fmt::Debug for dyn Image {
     }
 }
 
-pub struct ImageBRG565A<const Size: usize> {
+pub struct ImageRGB565A<const Size: usize> {
     pub id: u32,
     pub width: u8,
     pub height: u8,
@@ -44,7 +44,7 @@ pub struct ImageBRG565A<const Size: usize> {
     pub pixels: [u8; Size],
 }
 
-impl<const Size: usize> Image for ImageBRG565A<Size> {
+impl<const Size: usize> Image for ImageRGB565A<Size> {
     fn get_id(&self) -> u32 {
         self.id
     }
@@ -72,6 +72,58 @@ impl<const Size: usize> Image for ImageBRG565A<Size> {
             l_byte << 3,
             alpha,
         ))
+    }
+    fn get_width(&self) -> u8 {
+        self.width
+    }
+    fn get_height(&self) -> u8 {
+        self.height
+    }
+    fn get_bpp(&self) -> u8 {
+        16
+    }
+    fn has_alpha(&self) -> bool {
+        self.has_alpha
+    }
+}
+
+pub struct ImageRGBP256<const PixelSize: usize> {
+    pub id: u32,
+    pub width: u8,
+    pub height: u8,
+    pub has_alpha: bool,
+    pub pixels: [u8; PixelSize],
+}
+
+impl<const PixelSize: usize> Image for ImageRGBP256<PixelSize> {
+    fn get_id(&self) -> u32 {
+        self.id
+    }
+    fn get_pixel(&self, x: usize, y: usize) -> Option<(u8, u8, u8, Option<u8>)> {
+        if x > self.width as usize || y > self.height as usize {
+            return None;
+        }
+
+        let palette_length: usize = self.pixels[0] as usize;
+        let pixel_base = 1 + (palette_length * 3);
+
+        let pixel_length: usize = if self.has_alpha { 2 } else { 1 };
+
+        let base = ((y * self.width as usize) + x) * pixel_length;
+        let index = self.pixels[pixel_base + base] as usize;
+        let palette_base = 1 + (index * 3);
+
+        let r = self.pixels[palette_base];
+        let g = self.pixels[palette_base + 1];
+        let b = self.pixels[palette_base + 2];
+
+        let alpha = if self.has_alpha {
+            Some(self.pixels[pixel_base + base + 1])
+        } else {
+            None
+        };
+
+        Some((r, g, b, alpha))
     }
     fn get_width(&self) -> u8 {
         self.width
