@@ -75,7 +75,7 @@ fn request_size(_display: &Display, state: &State) -> Size {
         .unwrap_or_default()
 }
 
-fn render(display: &Display, state: &mut State, frame: Rect, _first_render: bool) {
+fn render(display: &mut Display, state: &mut State, frame: Rect, _first_render: bool) {
     if let Some(image) = &state.image {
         let position = frame.position(
             image.size(),

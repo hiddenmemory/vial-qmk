@@ -48,7 +48,7 @@ pub struct WidgetState<Inner: Default + core::fmt::Debug> {
 
     pub layout_size_fn: fn(&Display, &Inner) -> Size,
     pub update_fn: fn(&mut Inner) -> Outcome,
-    pub render_fn: fn(&Display, &mut Inner, Rect, bool),
+    pub render_fn: fn(&mut Display, &mut Inner, Rect, bool),
 }
 
 impl<Inner: Default + core::fmt::Debug> Default for WidgetState<Inner> {
@@ -77,7 +77,7 @@ fn empty_update<Inner: Default + core::fmt::Debug>(_state: &mut Inner) -> Outcom
 }
 
 fn empty_render<Inner: Default + core::fmt::Debug>(
-    _display: &Display,
+    _display: &mut Display,
     _state: &mut Inner,
     _frame: Rect,
     _first_render: bool,
@@ -104,7 +104,7 @@ impl<Inner: Default + core::fmt::Debug> WidgetState<Inner> {
         outcome
     }
 
-    pub fn render(&mut self, display: &Display, first_render: bool) {
+    pub fn render(&mut self, display: &mut Display, first_render: bool) {
         if first_render
             || self.requires_redraw
             || (!self.ignores_accent && display.accent_colour.has_changed())
@@ -134,7 +134,10 @@ macro_rules! render_widgets {
     ( $display:ident , $state:ident , $first_render:ident => $( $state_path:ident ),* ) => {
         {
             $(
-                 $state. $state_path .render($display, $first_render);
+                $crate::utils::debug::time("render-component", || {
+                     $state. $state_path .render($display, $first_render);
+                });
+
             )*
 
         }

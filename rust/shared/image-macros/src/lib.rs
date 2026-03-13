@@ -474,6 +474,8 @@ pub fn include_font(input: TokenStream) -> TokenStream {
         code_points.push((position.parent, position.x as usize, position.width));
     }
 
+    code_points.sort_unstable_by(|(lhs, _, _), (rhs, _, _)| lhs.cmp(rhs));
+
     let id = id_from_str(&name);
     let font_size = parsed_args.size;
     let (space_width, character_padding) = {

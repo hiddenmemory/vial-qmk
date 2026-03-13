@@ -97,6 +97,7 @@ impl<const PixelSize: usize> ImageRGBP256<PixelSize> {
     }
 }
 
+#[inline(always)]
 fn get_pixel(
     x: usize,
     y: usize,
@@ -290,17 +291,16 @@ impl Rect {
 
 impl<const CodePoints: usize, const PixelSize: usize> Font<CodePoints, PixelSize> {
     pub fn slice_for_char(&self, c: char) -> Option<Rect> {
-        // x, y, width, height
-        let (_, x, width) = self
+        let offset = self
             .code_points
-            .iter()
-            .find(|(point, _offset, _width)| *point == c)?;
-
-        Some(Rect::new(*x, 0, *width, self.height))
+            .binary_search_by(|(point, _, _)| point.cmp(&c))
+            .ok()?;
+        let (_, x, width) = self.code_points[offset];
+        Some(Rect::new(x, 0, width, self.height))
     }
 
-    pub fn with_colour(&self, r: u8, g: u8, b: u8) -> ImageRecolour<'_> {
-        ImageRecolour {
+    pub fn with_colour(&self, r: u8, g: u8, b: u8) -> FontWithColour<'_> {
+        FontWithColour {
             id: self.id,
             pixels: &self.pixels,
             palette: [r, g, b],
@@ -339,5 +339,36 @@ impl<const CodePoints: usize, const PixelSize: usize> Image for Font<CodePoints,
     }
     fn has_alpha(&self) -> bool {
         self.has_alpha
+    }
+}
+
+pub struct FontWithColour<'a> {
+    id: u32,
+    pixels: &'a [u8],
+    palette: [u8; 3],
+    width: usize,
+    height: usize,
+}
+
+impl<'a> Image for FontWithColour<'a> {
+    fn get_id(&self) -> u32 {
+        self.id
+    }
+    fn get_pixel(&self, x: usize, y: usize) -> Option<(u8, u8, u8, Option<u8>)> {
+        Some((
+            self.palette[0],
+            self.palette[1],
+            self.palette[2],
+            Some(self.pixels[(y * self.width) + x]),
+        ))
+    }
+    fn get_width(&self) -> usize {
+        self.width
+    }
+    fn get_height(&self) -> usize {
+        self.height
+    }
+    fn has_alpha(&self) -> bool {
+        true
     }
 }

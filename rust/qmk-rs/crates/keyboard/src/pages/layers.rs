@@ -79,7 +79,7 @@ pub fn layout(display: &Display, state: &mut State) {
     );
 }
 
-pub fn render(display: &Display, state: &mut State, first_render: bool) {
+pub fn render(display: &mut Display, state: &mut State, first_render: bool) {
     if state.widget_layer.requires_redraw && state.widget_image.requires_redraw {
         display.fill_rect(state.widget_image.layout_frame, *display.clear_colour);
     }

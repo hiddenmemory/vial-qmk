@@ -166,3 +166,16 @@ pub fn check_secondary_debug_queue() {
         }
     }
 }
+
+pub fn time<F>(tag: &str, f: F)
+where
+    F: FnOnce(),
+{
+    let before = Timer::read();
+    f();
+    let after = Timer::read();
+    debug_log(&format!(
+        "[{tag}] took {} ms to render",
+        after.saturating_sub(before)
+    ));
+}

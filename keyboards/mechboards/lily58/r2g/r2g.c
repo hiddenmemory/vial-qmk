@@ -5,6 +5,7 @@
 #include "debug.h"
 #include "keyboard.h"
 #include "print.h"
+#include "qp_surface_internal.h"
 #include "quantum.h"
 #include "common/display_lcd.h"
 #include "rgb_matrix.h"
@@ -14,6 +15,17 @@ void raw_hid_receive_rs(uint8_t *data, uint8_t length);
 void housekeeping_task_user_rs(void);
 void rgb_matrix_indicators_advanced_rs(uint8_t led_min, uint8_t led_max);
 bool process_record_user_rs(uint16_t keycode, bool pressed, keyrecord_t *record);
+
+// We use this when we render directly to the surface, this reduces us needing to allocate
+void r2g_surface_dirty_area(painter_device_t device, uint16_t l, uint16_t t, uint16_t r, uint16_t b) {
+    surface_painter_device_t *surface = (surface_painter_device_t *)device;
+    surface_dirty_data_t *dirty = &surface->dirty;
+
+    dirty->l = MIN(l, dirty->l);
+    dirty->t = MIN(t, dirty->t);
+    dirty->b = MAX(b, dirty->b);
+    dirty->r = MAX(r, dirty->r);
+}
 
 void debug_toggle(bool on) {
     debug_enable = on;

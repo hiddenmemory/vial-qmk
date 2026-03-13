@@ -49,7 +49,7 @@ fn request_size(display: &Display, state: &State) -> Size {
     }
 }
 
-fn render(display: &Display, state: &mut State, frame: Rect, _first_render: bool) {
+fn render(display: &mut Display, state: &mut State, frame: Rect, _first_render: bool) {
     display.fill_rect(frame, *display.clear_colour);
 
     let pixel_progress = ((frame.size.width as f32 / 100.0f32) * state.progress as f32) as u16;

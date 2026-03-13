@@ -108,7 +108,7 @@ impl State {
     pub fn update(&mut self, page: Page) -> Outcome {
         get_page!(self, page => update())
     }
-    pub fn render(&mut self, page: Page, display: &Display) {
+    pub fn render(&mut self, page: Page, display: &mut Display) {
         get_page!(self, page => render(display));
     }
 

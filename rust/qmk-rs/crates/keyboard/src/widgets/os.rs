@@ -2,7 +2,7 @@ use crate::{
     detect_os::HostOS,
     display::Display,
     fonts,
-    utils::{HSV_BLACK, HSV_WHITE, Rect, Size},
+    utils::{Alignment, HSV_BLACK, HSV_WHITE, Rect, Size},
     widgets::{Outcome, WidgetState},
 };
 
@@ -39,13 +39,14 @@ fn update(state: &mut State) -> Outcome {
     Outcome::NoChange
 }
 
-fn render(display: &Display, state: &mut State, frame: Rect, _first_render: bool) {
+fn render(display: &mut Display, state: &mut State, frame: Rect, _first_render: bool) {
     display.fill_rect(frame, *display.clear_colour);
 
-    fonts::render_centered(
+    fonts::render_aligned(
         display,
         &fonts::SMALL,
         frame,
+        Alignment::Center,
         HSV_WHITE,
         Some(HSV_BLACK),
         state.os.name(),

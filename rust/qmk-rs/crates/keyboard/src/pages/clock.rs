@@ -74,7 +74,7 @@ pub fn layout(display: &Display, state: &mut State) {
     state.widget_huge_layer.layout_frame.size.height += remaining_height;
 }
 
-pub fn render(display: &Display, state: &mut State, first_render: bool) {
+pub fn render(display: &mut Display, state: &mut State, first_render: bool) {
     render_widgets! { display, state, first_render =>
         widget_clock,
         widget_sleep_progress,

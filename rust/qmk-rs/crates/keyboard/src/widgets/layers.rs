@@ -4,7 +4,7 @@ use crate::{
     display::Display,
     fonts,
     keymap::KeyMap,
-    utils::{HSV_BLACK, HSV_WHITE, Rect, Size},
+    utils::{Alignment, HSV_BLACK, HSV_WHITE, Rect, Size},
     widgets::{Outcome, WidgetState},
 };
 
@@ -47,7 +47,7 @@ fn update(state: &mut State) -> Outcome {
     }
 }
 
-fn render(display: &Display, state: &mut State, frame: Rect, _first_render: bool) {
+fn render(display: &mut Display, state: &mut State, frame: Rect, _first_render: bool) {
     let layer_count = KeyMap::layer_count() as u16;
     let layer_width = frame.size.width / layer_count;
     let padding = frame.size.width % layer_count / 2;
@@ -63,10 +63,11 @@ fn render(display: &Display, state: &mut State, frame: Rect, _first_render: bool
             frame.size.height,
         );
 
-        fonts::render_centered(
+        fonts::render_aligned(
             display,
             &fonts::LARGE,
             rect,
+            Alignment::Center,
             if current == layer {
                 HSV_BLACK
             } else {

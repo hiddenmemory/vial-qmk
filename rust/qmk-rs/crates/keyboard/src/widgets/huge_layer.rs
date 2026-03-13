@@ -4,7 +4,7 @@ use crate::{
     display::Display,
     fonts,
     keymap::KeyMap,
-    utils::{HSV_BLACK, Rect, Size},
+    utils::{Alignment, HSV_BLACK, Rect, Size},
     widgets::{Outcome, WidgetState},
 };
 
@@ -47,13 +47,14 @@ fn update(state: &mut State) -> Outcome {
     }
 }
 
-fn render(display: &Display, state: &mut State, frame: Rect, _first_render: bool) {
+fn render(display: &mut Display, state: &mut State, frame: Rect, _first_render: bool) {
     let layer = (state.active_layer.unwrap_or(0) + 1) as u16;
 
-    fonts::render_centered(
+    fonts::render_aligned(
         display,
         &fonts::LARGE_NUMBERS,
         frame,
+        Alignment::Center,
         HSV_BLACK,
         Some(*display.accent_colour),
         &format!("{layer}"),

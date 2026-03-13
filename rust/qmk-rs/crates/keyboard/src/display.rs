@@ -291,12 +291,12 @@ impl Display {
     }
 
     pub fn reset_clip(&self) {
-        self.set_clip(self.bounds);
+        self.set_dirty(self.bounds);
     }
 
-    pub fn set_clip(&self, rect: Rect) {
+    pub fn set_dirty(&self, rect: Rect) {
         unsafe {
-            qmk_sys::qp_viewport(
+            r2g_surface_dirty_area(
                 self.device,
                 rect.origin.x,
                 rect.origin.y,
@@ -306,7 +306,12 @@ impl Display {
         }
     }
 
-    pub fn render_image(&self, position: Point, image: &dyn include_image::Image, bg: Option<HSV>) {
+    pub fn render_image(
+        &mut self,
+        position: Point,
+        image: &dyn include_image::Image,
+        bg: Option<HSV>,
+    ) {
         self.render_image_slice(
             position,
             image,
@@ -316,7 +321,7 @@ impl Display {
     }
 
     pub fn render_image_slice(
-        &self,
+        &mut self,
         position: Point,
         image: &dyn include_image::Image,
         slice: Rect,
@@ -344,11 +349,8 @@ impl Display {
             width
         };
 
-        // Allocate a buffer to flip onto the surface
-        let mut buf = vec![0u8; width as usize * height as usize * 2];
-
         // Pre-calculate a background colour as to_rgb needs only doing once if we have a colour
-        let (maybe_bgr, maybe_bgg, maybe_bgb) = if let Some(bg) = bg {
+        let (bg_red, bg_g, bg_b) = if let Some(bg) = bg {
             bg.to_rgb8()
         } else {
             (0, 0, 0)
@@ -360,53 +362,54 @@ impl Display {
                     continue;
                 };
 
-                // Get the background image for the pixel
-                let (bg_r, bg_g, bg_b) = if bg.is_some() {
-                    // Use pre-calculated if we have been given an image
-                    (maybe_bgr, maybe_bgg, maybe_bgb)
-                } else {
-                    // Work out where in our self.device_buffer the backing pixel is
-                    let backing_x = position.x as usize + (x - slice.origin.x) as usize;
-                    let backing_y = position.y as usize + (y - slice.origin.y) as usize;
-                    let backing_offset =
-                        ((backing_y * self.bounds.size.width as usize) + backing_x) * 2;
+                // Work out where in our self.device_buffer the backing pixel is
+                let backing_x = position.x as usize + (x - slice.origin.x) as usize;
+                let backing_y = position.y as usize + (y - slice.origin.y) as usize;
+                let backing_offset =
+                    ((backing_y * self.bounds.size.width as usize) + backing_x) * 2;
 
-                    include_image::rgb565_to_rgb888(
-                        self.device_buffer[backing_offset],
-                        self.device_buffer[backing_offset + 1],
+                let (red, green, blue) = if fg_a.unwrap_or(255) == 255 {
+                    // No need to blend if there is no alpha
+                    (fg_r, fg_g, fg_b)
+                } else {
+                    // Get the background image for the pixel
+                    let (bg_r, bg_g, bg_b) = if bg.is_some() {
+                        // Use pre-calculated if we have been given an image
+                        (bg_red, bg_g, bg_b)
+                    } else {
+                        // Otherwise get it from the backing buffer
+                        include_image::rgb565_to_rgb888(
+                            self.device_buffer[backing_offset],
+                            self.device_buffer[backing_offset + 1],
+                        )
+                    };
+
+                    // Blend the pixels...
+                    (
+                        include_image::blend_pixel(fg_r, bg_r, fg_a),
+                        include_image::blend_pixel(fg_g, bg_g, fg_a),
+                        include_image::blend_pixel(fg_b, bg_b, fg_a),
                     )
                 };
 
-                // Blend the pixels...
-                let red = include_image::blend_pixel(fg_r, bg_r, fg_a);
-                let green = include_image::blend_pixel(fg_g, bg_g, fg_a);
-                let blue = include_image::blend_pixel(fg_b, bg_b, fg_a);
-
-                // ... get the offset ...
-                let offset = (((y - slice.origin.y) as usize * width as usize)
-                    + (x - slice.origin.x) as usize)
-                    * 2;
-
                 let (high, low) = include_image::rgb888_to_rgb565(red, green, blue);
 
-                // Update the buffer!
-                buf[offset] = high;
-                buf[offset + 1] = low;
+                self.device_buffer[backing_offset] = high;
+                self.device_buffer[backing_offset + 1] = low;
             }
         }
 
         // Set the clip rect
-        self.set_clip(Rect::new(position.x, position.y, width, height));
-
-        // Push the buffer to the display
-        unsafe {
-            qmk_sys::qp_pixdata(
-                self.device,
-                buf.as_ptr() as *const core::ffi::c_void,
-                width as u32 * height as u32,
-            );
-        }
-
-        self.reset_clip();
+        self.set_dirty(Rect::new(position.x, position.y, width, height));
     }
+}
+
+unsafe extern "C" {
+    fn r2g_surface_dirty_area(
+        device: qmk_sys::painter_device_t,
+        left: u16,
+        top: u16,
+        right: u16,
+        bottom: u16,
+    );
 }

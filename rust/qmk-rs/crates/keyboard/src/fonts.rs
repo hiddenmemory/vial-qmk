@@ -3,7 +3,7 @@ use include_image::*;
 
 use crate::{
     display::Display,
-    utils::{HSV, Point, Rect},
+    utils::{Alignment, HSV, Point, Rect},
 };
 
 include_font!("./images/font.ttf", 140, "0123456789", LARGE_NUMBERS);
@@ -41,7 +41,7 @@ pub fn width<const A: usize, const B: usize>(font: &include_image::Font<A, B>, v
 }
 
 pub fn render<const A: usize, const B: usize>(
-    display: &Display,
+    display: &mut Display,
     font: &include_image::Font<A, B>,
     value: &str,
     at: Point,
@@ -72,10 +72,11 @@ pub fn render<const A: usize, const B: usize>(
     }
 }
 
-pub fn render_centered<const A: usize, const B: usize>(
-    display: &Display,
+pub fn render_aligned<const A: usize, const B: usize>(
+    display: &mut Display,
     font: &include_image::Font<A, B>,
     frame: Rect,
+    alignment: Alignment,
     fg: HSV,
     bg: Option<HSV>,
     text: &str,
@@ -86,11 +87,7 @@ pub fn render_centered<const A: usize, const B: usize>(
 
     let slice = Rect::new(0, 0, width(font, text), font.get_height() as u16);
 
-    let location = frame.position(
-        slice.size,
-        crate::utils::Alignment::Center,
-        crate::utils::Alignment::Center,
-    );
+    let location = frame.position(slice.size, alignment, crate::utils::Alignment::Center);
 
     render(display, font, text, location, fg, bg);
 }

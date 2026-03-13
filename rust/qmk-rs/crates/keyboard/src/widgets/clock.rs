@@ -4,7 +4,7 @@ use crate::{
     display::Display,
     fonts,
     timer::Timer,
-    utils::{HSV_BLACK, Rect, Size},
+    utils::{Alignment, HSV_BLACK, Rect, Size},
     widgets::{Outcome, WidgetState},
 };
 
@@ -64,7 +64,7 @@ fn update(state: &mut State) -> Outcome {
     }
 }
 
-fn render(display: &Display, state: &mut State, frame: Rect, _first_render: bool) {
+fn render(display: &mut Display, state: &mut State, frame: Rect, _first_render: bool) {
     display.fill_rect(frame, *display.clear_colour);
 
     let text = if state.seconds_since_midnight == 0 {
@@ -73,10 +73,11 @@ fn render(display: &Display, state: &mut State, frame: Rect, _first_render: bool
         format!("{:0>2}:{:0>2}", state.hours, state.minutes)
     };
 
-    fonts::render_centered(
+    fonts::render_aligned(
         display,
         &fonts::LARGE,
         frame,
+        Alignment::Center,
         HSV_BLACK,
         Some(*display.accent_colour),
         &text,

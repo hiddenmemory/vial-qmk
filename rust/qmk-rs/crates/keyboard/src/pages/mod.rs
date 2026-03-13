@@ -25,7 +25,7 @@ impl Page {
     }
 
     fn default_left_page() -> Page {
-        Page::Clock
+        Page::Layers
     }
 
     fn default_right_page() -> Page {
@@ -63,7 +63,7 @@ pub struct PageState<Inner: Default + core::fmt::Debug> {
 
     pub layout_fn: fn(&Display, &mut Inner),
     pub update_fn: fn(&mut Inner) -> Outcome,
-    pub render_fn: fn(&Display, &mut Inner, bool),
+    pub render_fn: fn(&mut Display, &mut Inner, bool),
 }
 
 impl<Inner: Default + core::fmt::Debug> Default for PageState<Inner> {
@@ -90,7 +90,7 @@ fn empty_update<Inner: Default + core::fmt::Debug>(_state: &mut Inner) -> Outcom
 }
 
 fn empty_render<Inner: Default + core::fmt::Debug>(
-    _display: &Display,
+    _display: &mut Display,
     _state: &mut Inner,
     _first_render: bool,
 ) {
@@ -121,7 +121,7 @@ impl<Inner: Default + core::fmt::Debug> PageState<Inner> {
         outcome
     }
 
-    pub fn render(&mut self, display: &Display) {
+    pub fn render(&mut self, display: &mut Display) {
         if self.first_render {
             display.clear();
         }
@@ -130,8 +130,10 @@ impl<Inner: Default + core::fmt::Debug> PageState<Inner> {
             || self.needs_redraw
             || (!self.ignores_accent && display.accent_colour.has_changed())
         {
-            (self.render_fn)(display, &mut self.state, self.first_render);
-            self.needs_redraw = false;
+            crate::utils::debug::time("page-render", || {
+                (self.render_fn)(display, &mut self.state, self.first_render);
+                self.needs_redraw = false;
+            });
         }
 
         self.first_render = false;
