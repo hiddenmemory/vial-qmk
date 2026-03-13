@@ -5,9 +5,11 @@ use crate::{
     utils::{Alignment, HSV, Point, Rect},
 };
 
-include_font!("./images/font.ttf", 140, "0123456789", LARGE_NUMBERS);
-include_font!("./images/font.ttf", 24, ASCII("→"), SMALL);
-include_font!("./images/font.ttf", 32, ASCII, LARGE);
+include_font!("./fonts/font.ttf", 140, "0123456789", LARGE_NUMBERS);
+include_font!("./fonts/font.ttf", 40, "0123456789:", CLOCK_NUMBERS);
+include_font!("./fonts/font.ttf", 24, ASCII, SMALL);
+include_font!("./fonts/font.ttf", 32, ASCII, LARGE);
+
 pub fn width<const A: usize, const B: usize>(font: &include_image::Font<A, B>, value: &str) -> u16 {
     value.chars().fold(0, |total, c| {
         let width = if c == ' ' {

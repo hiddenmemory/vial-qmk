@@ -134,9 +134,7 @@ macro_rules! render_widgets {
     ( $display:ident , $state:ident , $first_render:ident => $( $state_path:ident ),* ) => {
         {
             $(
-                $crate::utils::debug::time("render-component", || {
                      $state. $state_path .render($display, $first_render);
-                });
 
             )*
 

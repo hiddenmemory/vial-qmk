@@ -1,4 +1,4 @@
-use alloc::{format, string::ToString};
+use alloc::format;
 
 use crate::{
     display::Display,
@@ -67,19 +67,25 @@ fn update(state: &mut State) -> Outcome {
 fn render(display: &mut Display, state: &mut State, frame: Rect, _first_render: bool) {
     display.fill_rect(frame, *display.clear_colour);
 
-    let text = if state.seconds_since_midnight == 0 {
-        "Waiting".to_string()
+    if state.seconds_since_midnight == 0 {
+        fonts::render_aligned(
+            display,
+            &fonts::SMALL,
+            frame,
+            Alignment::Center,
+            HSV_BLACK,
+            Some(*display.accent_colour),
+            "Waiting",
+        );
     } else {
-        format!("{:0>2}:{:0>2}", state.hours, state.minutes)
-    };
-
-    fonts::render_aligned(
-        display,
-        &fonts::LARGE,
-        frame,
-        Alignment::Center,
-        HSV_BLACK,
-        Some(*display.accent_colour),
-        &text,
-    );
+        fonts::render_aligned(
+            display,
+            &fonts::CLOCK_NUMBERS,
+            frame,
+            Alignment::Center,
+            HSV_BLACK,
+            Some(*display.accent_colour),
+            &format!("{:0>2}:{:0>2}", state.hours, state.minutes),
+        );
+    }
 }

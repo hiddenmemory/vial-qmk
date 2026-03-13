@@ -130,10 +130,8 @@ impl<Inner: Default + core::fmt::Debug> PageState<Inner> {
             || self.needs_redraw
             || (!self.ignores_accent && display.accent_colour.has_changed())
         {
-            crate::utils::debug::time("page-render", || {
-                (self.render_fn)(display, &mut self.state, self.first_render);
-                self.needs_redraw = false;
-            });
+            (self.render_fn)(display, &mut self.state, self.first_render);
+            self.needs_redraw = false;
         }
 
         self.first_render = false;
