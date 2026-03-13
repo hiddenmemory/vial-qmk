@@ -16,9 +16,6 @@ pub trait Image {
     fn get_height(&self) -> usize {
         0
     }
-    fn get_bpp(&self) -> u8 {
-        0
-    }
     fn has_alpha(&self) -> bool {
         false
     }
@@ -26,13 +23,7 @@ pub trait Image {
 
 impl core::fmt::Debug for dyn Image {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(
-            f,
-            "Image<{},{},{}>",
-            self.get_width(),
-            self.get_height(),
-            self.get_bpp()
-        )
+        write!(f, "Image<{},{}>", self.get_width(), self.get_height(),)
     }
 }
 
@@ -71,9 +62,6 @@ impl<const Size: usize> Image for ImageRGB565A<Size> {
     fn get_height(&self) -> usize {
         self.height
     }
-    fn get_bpp(&self) -> u8 {
-        16
-    }
     fn has_alpha(&self) -> bool {
         self.has_alpha
     }
@@ -92,8 +80,20 @@ impl<const PixelSize: usize> ImageRGBP256<PixelSize> {
         let size = self.pixels[0] as usize;
         if size == 0 { 256 } else { size }
     }
-    pub fn with_colour(&self, r: u8, g: u8, b: u8) -> Option<ImageRecolour<'_, PixelSize>> {
-        ImageRecolour::wrap(self, r, g, b)
+    pub fn with_colour(&self, r: u8, g: u8, b: u8) -> Option<ImageRecolour<'_>> {
+        if self.has_alpha && self.palette_size() == 1 {
+            Some(ImageRecolour::wrap(
+                self.id,
+                &self.pixels,
+                r,
+                g,
+                b,
+                self.width,
+                self.height,
+            ))
+        } else {
+            None
+        }
     }
 }
 
@@ -165,71 +165,66 @@ impl<const PixelSize: usize> Image for ImageRGBP256<PixelSize> {
     fn get_height(&self) -> usize {
         self.height
     }
-    fn get_bpp(&self) -> u8 {
-        32
-    }
     fn has_alpha(&self) -> bool {
         self.has_alpha
     }
 }
 
-pub struct ImageRecolour<'a, const Size: usize> {
-    source: &'a ImageRGBP256<Size>,
+pub struct ImageRecolour<'a> {
+    id: u32,
+    pixels: &'a [u8],
     palette: [u8; 3],
+    width: usize,
+    height: usize,
 }
 
-impl<'a, const Size: usize> ImageRecolour<'a, Size> {
-    pub fn wrap(
-        image: &'a ImageRGBP256<Size>,
+impl<'a> ImageRecolour<'a> {
+    fn wrap(
+        id: u32,
+        image: &'a [u8],
         r: u8,
         g: u8,
         b: u8,
-    ) -> Option<ImageRecolour<'a, Size>> {
-        if image.palette_size() != 1 {
-            None
-        } else {
-            Some(ImageRecolour {
-                source: image,
-                palette: [r, g, b],
-            })
+        width: usize,
+        height: usize,
+    ) -> ImageRecolour<'a> {
+        ImageRecolour {
+            id,
+            pixels: image,
+            palette: [r, g, b],
+            width,
+            height,
         }
     }
 }
 
-impl<'a, const PixelSize: usize> Image for ImageRecolour<'a, PixelSize> {
+impl<'a> Image for ImageRecolour<'a> {
     fn get_id(&self) -> u32 {
-        self.source.id
+        self.id
     }
     fn get_pixel(&self, x: usize, y: usize) -> Option<(u8, u8, u8, Option<u8>)> {
-        if x > self.source.width as usize || y > self.source.height as usize {
+        if x > self.width as usize || y > self.height as usize {
             return None;
         }
-
-        let palette_length: usize = self.source.palette_size();
-        let (_, palette) = self.source.pixels.split_at(1);
-        let (_, pixels) = palette.split_at(palette_length * 3);
 
         Some(get_pixel(
             x,
             y,
-            self.source.width,
-            self.source.has_alpha,
+            self.width,
+            true,
             1,
             &self.palette,
-            pixels,
+            &self.pixels,
         ))
     }
     fn get_width(&self) -> usize {
-        self.source.width
+        self.width
     }
     fn get_height(&self) -> usize {
-        self.source.height
-    }
-    fn get_bpp(&self) -> u8 {
-        self.source.get_bpp()
+        self.height
     }
     fn has_alpha(&self) -> bool {
-        self.source.has_alpha
+        true
     }
 }
 
@@ -260,4 +255,89 @@ pub fn rgb565_to_rgb888(h_byte: u8, l_byte: u8) -> (u8, u8, u8) {
         (h_byte << 5) | (l_byte >> 5 << 2),
         l_byte << 3,
     )
+}
+
+pub struct Font<const CodePoints: usize, const PixelSize: usize> {
+    pub id: u32,
+    pub font_size: u8,
+    pub space_width: u8,
+    pub character_padding: u8,
+    pub count: usize,
+    pub width: usize,
+    pub height: usize,
+    pub has_alpha: bool,
+    pub code_points: [(char, usize, usize); CodePoints],
+    pub pixels: [u8; PixelSize],
+}
+
+pub struct Rect {
+    pub x: usize,
+    pub y: usize,
+    pub width: usize,
+    pub height: usize,
+}
+
+impl Rect {
+    pub fn new(x: usize, y: usize, width: usize, height: usize) -> Rect {
+        Rect {
+            x,
+            y,
+            width,
+            height,
+        }
+    }
+}
+
+impl<const CodePoints: usize, const PixelSize: usize> Font<CodePoints, PixelSize> {
+    pub fn slice_for_char(&self, c: char) -> Option<Rect> {
+        // x, y, width, height
+        let (_, x, width) = self
+            .code_points
+            .iter()
+            .find(|(point, _offset, _width)| *point == c)?;
+
+        Some(Rect::new(*x, 0, *width, self.height))
+    }
+
+    pub fn with_colour(&self, r: u8, g: u8, b: u8) -> ImageRecolour<'_> {
+        ImageRecolour {
+            id: self.id,
+            pixels: &self.pixels,
+            palette: [r, g, b],
+            width: self.width,
+            height: self.width,
+        }
+    }
+}
+
+impl<const CodePoints: usize, const PixelSize: usize> Image for Font<CodePoints, PixelSize> {
+    fn get_id(&self) -> u32 {
+        self.id
+    }
+    fn get_pixel(&self, x: usize, y: usize) -> Option<(u8, u8, u8, Option<u8>)> {
+        if x > self.width as usize || y > self.height as usize {
+            return None;
+        }
+
+        let palette = [0u8, 0u8, 0u8];
+
+        Some(get_pixel(
+            x,
+            y,
+            self.width,
+            self.has_alpha,
+            1,
+            &palette,
+            &self.pixels,
+        ))
+    }
+    fn get_width(&self) -> usize {
+        self.width
+    }
+    fn get_height(&self) -> usize {
+        self.height
+    }
+    fn has_alpha(&self) -> bool {
+        self.has_alpha
+    }
 }

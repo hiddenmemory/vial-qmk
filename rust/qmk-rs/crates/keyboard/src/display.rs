@@ -1,4 +1,3 @@
-use alloc::format;
 use alloc::vec::Vec;
 use alloc::{ffi::CString, vec};
 
@@ -6,7 +5,7 @@ use crate::state;
 use crate::utils::debug::debug_log;
 use crate::utils::{HSV_BLACK, HSV_ORANGE};
 use crate::{
-    font::Font,
+    font::QmkFont,
     keyboard::Keyboard,
     sync::{SyncKey, SyncValue},
     utils::{HSV, Point, Rect, Size, TrackValue},
@@ -70,8 +69,6 @@ pub struct Display {
     #[allow(dead_code)]
     device_buffer: Vec<u8>,
     actual_device: qmk_sys::painter_device_t,
-    pub small_font: Font,
-    pub large_font: Font,
 }
 
 #[allow(dead_code)]
@@ -100,9 +97,6 @@ impl Display {
                 qmk_sys::LCD_OFFSET_Y as u16,
             );
         }
-
-        let small_font = Font::new(unsafe { &qmk_sys::font_font_small });
-        let large_font = Font::new(unsafe { &qmk_sys::font_font_large });
 
         let mut device_buffer = vec![0_u8; 64_801];
         let device = unsafe {
@@ -143,8 +137,6 @@ impl Display {
             ),
             device_buffer,
             actual_device,
-            small_font,
-            large_font,
         }
     }
 
@@ -257,7 +249,7 @@ impl Display {
         }
     }
 
-    pub fn center_text(&self, font: &Font, frame: Rect, fg: HSV, bg: HSV, text: &str) {
+    pub fn center_text(&self, font: &QmkFont, frame: Rect, fg: HSV, bg: HSV, text: &str) {
         unsafe {
             let Ok(actual_text) = CString::new(text) else {
                 return;
@@ -330,12 +322,9 @@ impl Display {
         slice: Rect,
         bg: Option<HSV>,
     ) {
-        debug_log(&format!("rendering slice {slice:?}"));
-        debug_log(&format!(
-            " of image {}, {}",
-            image.get_width(),
-            image.get_height()
-        ));
+        if position.x >= self.bounds.size.width || position.y >= self.bounds.size.height {
+            return;
+        }
 
         let width = slice.size.width;
         let height = slice.size.height;
@@ -354,8 +343,6 @@ impl Display {
         } else {
             width
         };
-
-        debug_log(&format!("width: {width}, height: {height}"));
 
         // Allocate a buffer to flip onto the surface
         let mut buf = vec![0u8; width as usize * height as usize * 2];

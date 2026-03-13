@@ -12,3 +12,4 @@ quote = "1.0.38"
 regex = "1.11.1"
 syn = "2.0.94"
 image-structs = { path = "../image-structs" }
+fontdue = "0.9.3"

@@ -1,6 +1,7 @@
 use crate::{
     detect_os::HostOS,
     display::Display,
+    fonts,
     utils::{HSV_BLACK, HSV_WHITE, Rect, Size},
     widgets::{Outcome, WidgetState},
 };
@@ -23,7 +24,7 @@ pub fn initial() -> WidgetState<State> {
 fn request_size(display: &Display, _state: &State) -> Size {
     Size {
         width: display.bounds.size.width,
-        height: display.small_font.line_height,
+        height: fonts::SMALL.height as u16,
     }
 }
 
@@ -41,11 +42,12 @@ fn update(state: &mut State) -> Outcome {
 fn render(display: &Display, state: &mut State, frame: Rect, _first_render: bool) {
     display.fill_rect(frame, *display.clear_colour);
 
-    display.center_text(
-        &display.small_font,
+    fonts::render_centered(
+        display,
+        &fonts::SMALL,
         frame,
         HSV_WHITE,
-        HSV_BLACK,
+        Some(HSV_BLACK),
         state.os.name(),
     );
 }

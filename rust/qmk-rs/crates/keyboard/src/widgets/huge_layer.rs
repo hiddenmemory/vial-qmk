@@ -1,11 +1,10 @@
 use alloc::format;
-use include_image::Image;
 
 use crate::{
     display::Display,
-    images,
+    fonts,
     keymap::KeyMap,
-    utils::{Rect, Size, debug::debug_log},
+    utils::{HSV_BLACK, Rect, Size},
     widgets::{Outcome, WidgetState},
 };
 
@@ -50,23 +49,13 @@ fn update(state: &mut State) -> Outcome {
 
 fn render(display: &Display, state: &mut State, frame: Rect, _first_render: bool) {
     let layer = (state.active_layer.unwrap_or(0) + 1) as u16;
-    let slice = Rect::new(50 * layer, 0, 50, 97);
 
-    let location = frame.position(
-        slice.size,
-        crate::utils::Alignment::Center,
-        crate::utils::Alignment::Center,
+    fonts::render_centered(
+        display,
+        &fonts::LARGE_NUMBERS,
+        frame,
+        HSV_BLACK,
+        Some(*display.accent_colour),
+        &format!("{layer}"),
     );
-
-    display.fill_rect(frame, *display.accent_colour);
-
-    let recolour = images::FONT_HUGE_A.with_colour(0xFF, 0xFF, 0xFF);
-
-    let image: &dyn Image = if let Some(ref image) = recolour {
-        image
-    } else {
-        &images::FONT_HUGE_A
-    };
-
-    display.render_image_slice(location, image, slice, Some(*display.accent_colour));
 }

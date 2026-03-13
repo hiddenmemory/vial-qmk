@@ -2,12 +2,13 @@ use alloc::format;
 
 use crate::{
     display::Display,
+    fonts,
     keymap::KeyMap,
     utils::{HSV_BLACK, HSV_WHITE, Rect, Size},
     widgets::{Outcome, WidgetState},
 };
 
-const PADDING: u16 = 8;
+const PADDING: u16 = 4;
 
 #[derive(Debug, Default)]
 pub struct State {
@@ -27,7 +28,7 @@ pub fn initial() -> WidgetState<State> {
 fn request_size(display: &Display, _state: &State) -> Size {
     Size {
         width: display.bounds.size.width,
-        height: display.small_font.line_height + (PADDING * 2),
+        height: fonts::LARGE.height as u16 + (PADDING * 2),
     }
 }
 
@@ -62,19 +63,20 @@ fn render(display: &Display, state: &mut State, frame: Rect, _first_render: bool
             frame.size.height,
         );
 
-        display.center_text(
-            &display.large_font,
+        fonts::render_centered(
+            display,
+            &fonts::LARGE,
             rect,
             if current == layer {
                 HSV_BLACK
             } else {
                 HSV_WHITE
             },
-            if current == layer {
+            Some(if current == layer {
                 *display.accent_colour
             } else {
                 *display.clear_colour
-            },
+            }),
             &text,
         )
     }

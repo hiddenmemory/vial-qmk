@@ -24,6 +24,7 @@ mod eeprom;
 mod font;
 mod heap;
 mod images;
+mod fonts;
 mod keyboard;
 mod keymap;
 mod pages;
@@ -53,9 +54,9 @@ fn update(state: &mut State) {
 
 fn render(display: &mut Display, state: &mut State) {
     if KeyMap::get_layer() > 0 {
-        display.accent_colour.set(HSV_ORANGE);
-    } else {
         display.accent_colour.set(HSV_LIME);
+    } else {
+        display.accent_colour.set(HSV_ORANGE);
     }
 
     if state.requires_layout() {

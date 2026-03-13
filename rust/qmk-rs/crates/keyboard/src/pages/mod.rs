@@ -25,7 +25,7 @@ impl Page {
     }
 
     fn default_left_page() -> Page {
-        Page::Layers
+        Page::Clock
     }
 
     fn default_right_page() -> Page {

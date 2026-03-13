@@ -2,14 +2,20 @@
 
 use std::{
     collections::HashMap,
+    fs::File,
     hash::{DefaultHasher, Hash, Hasher},
+    io::Read,
 };
 
+use fontdue::{
+    Font,
+    layout::{CoordinateSystem, Layout, TextStyle},
+};
 use image::{ImageBuffer, Rgba};
 use proc_macro::{Span, TokenStream};
 use quote::quote;
 use regex::Regex;
-use syn::{Token, parse::Parse, parse_macro_input};
+use syn::{Token, parenthesized, parse::Parse, parse_macro_input};
 
 mod palette256;
 
@@ -188,7 +194,7 @@ fn path_to_image(args: &ParsedArgs) -> (Vec<u8>, String, String, usize, usize, b
                     height,
                     has_alpha,
                     // this ensures that the paletter is between 4 and 256 colours
-                    incoming_value.min(8).max(2),
+                    incoming_value.clamp(2, 8),
                 )
             });
 
@@ -240,6 +246,12 @@ impl Parse for ParsedArgs {
     }
 }
 
+fn id_from_str(value: &str) -> u32 {
+    let mut hasher = DefaultHasher::new();
+    value.hash(&mut hasher);
+    hasher.finish() as u32
+}
+
 #[proc_macro]
 pub fn include_image(input: TokenStream) -> TokenStream {
     // parse the input into a comma separated list of arguments
@@ -252,9 +264,7 @@ pub fn include_image(input: TokenStream) -> TokenStream {
     let name_ident = syn::Ident::new(&name, Span::call_site().into());
     let struct_ident = syn::Ident::new(&struct_name, Span::call_site().into());
 
-    let mut hasher = DefaultHasher::new();
-    name.hash(&mut hasher);
-    let id = hasher.finish() as u32;
+    let id = id_from_str(&name);
 
     let byte_tokens = pixel_bytes
         .iter()
@@ -267,6 +277,241 @@ pub fn include_image(input: TokenStream) -> TokenStream {
             width: #width,
             height: #height,
             has_alpha: #has_alpha,
+            pixels: [#(#byte_tokens),*],
+        };
+    };
+
+    output.into()
+}
+
+struct FontParsedArgs {
+    path: String,
+    size: u8,
+    chars: String,
+    name_ident: Option<syn::Ident>,
+}
+
+impl Parse for FontParsedArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let path: syn::LitStr = input.parse()?;
+        input.parse::<Token![,]>()?;
+        let size: syn::LitInt = input.parse()?;
+        input.parse::<Token![,]>()?;
+
+        let tag = format!("{}:{}", path.value(), size);
+
+        let chars = if input.peek(syn::LitStr) {
+            let chars: syn::LitStr = input.parse()?;
+            println!(
+                "[{tag}] generating custom character table: {}",
+                chars.value()
+            );
+            chars.value()
+        } else if input.peek(syn::Ident) {
+            let _ident = input.parse::<syn::Ident>()?;
+            let ident = _ident.to_string();
+
+            println!("[{tag}] generating for {_ident}");
+
+            let mut glyphs = String::new();
+
+            if ident.eq("ASCII") {
+                let ascii = (0x21..0x7F_u32)
+                    .flat_map(char::from_u32)
+                    .collect::<String>();
+
+                glyphs.push_str(&ascii);
+                println!("[{tag}] → including ASCII table");
+            }
+
+            if (ident.eq("ASCII") || ident.eq("unicode")) && input.peek(syn::token::Paren) {
+                let inner;
+                parenthesized!(inner in input);
+                let additional_chars: syn::LitStr = inner.parse()?;
+                glyphs.push_str(&additional_chars.value());
+                println!(
+                    "[{tag}] → including unicode table: {}",
+                    additional_chars.value()
+                );
+            }
+
+            glyphs
+        } else {
+            "".to_string()
+        };
+
+        let path = path.value();
+        let size = size.base10_parse()?;
+
+        let name_ident = if input.peek(Token![,]) {
+            input.parse::<Token![,]>()?;
+            Some(input.parse()?)
+        } else {
+            None
+        };
+
+        Ok(FontParsedArgs {
+            path,
+            size,
+            chars,
+            name_ident,
+        })
+    }
+}
+
+#[proc_macro]
+pub fn include_font(input: TokenStream) -> TokenStream {
+    let mut parsed_args = parse_macro_input!(input as FontParsedArgs);
+
+    let path = parsed_args
+        .path
+        .split('/')
+        .next_back()
+        .expect("failed to get last part of path");
+
+    let split: Vec<_> = path.split('.').collect();
+
+    let name = format!(
+        "{}_{}",
+        remove_non_alphanumeric(&split[0..split.len() - 1].join(".")).to_uppercase(),
+        parsed_args.size
+    );
+
+    let name_ident = parsed_args
+        .name_ident
+        .take()
+        .unwrap_or(syn::Ident::new(&name, Span::call_site().into()));
+
+    let mut font: Vec<u8> = vec![];
+
+    File::open(&parsed_args.path)
+        .expect("open font file")
+        .read_to_end(&mut font)
+        .expect("read font file");
+
+    let font = Font::from_bytes(font.as_slice(), Default::default()).expect("create text renderer");
+
+    let mut layout = Layout::new(CoordinateSystem::PositiveYDown);
+
+    layout.append(
+        &[&font],
+        &TextStyle::new(&parsed_args.chars, parsed_args.size as f32, 0),
+    );
+
+    // println!("glyphs = >{}<", parsed_args.chars);
+
+    // println!(
+    //     "{:#?}",
+    //     font.horizontal_line_metrics(parsed_args.size as f32)
+    // );
+
+    // println!("{:#?}", layout.glyphs());
+    // println!("{:#?}", layout.lines());
+    // println!("{:#?}", layout.height());
+
+    let glyphs_with_data = layout
+        .glyphs()
+        .iter()
+        .map(|position| {
+            let (metrics, data) = font.rasterize_indexed(position.key.glyph_index, position.key.px);
+            (position, metrics, data)
+        })
+        .collect::<Vec<_>>();
+
+    // - Create a buffer that is (glyphs_with_data.last().{x + width}, layout.lines().first().max_new_line_size)
+    // - Go through each glyphs_with_data and put them in the buffer in the correct byte location
+
+    let max_height = layout
+        .lines()
+        .expect("Lines withing the layout")
+        .first()
+        .expect("At least one line")
+        .max_new_line_size as usize;
+
+    // This checks to see if we have anything hanging down over the max_height reported from lines
+    let max_height = glyphs_with_data
+        .iter()
+        .map(|(p, _, _)| p.y as usize + p.height)
+        .max()
+        .unwrap_or(max_height)
+        .max(max_height);
+
+    let (last_glyph_position, _, _) = glyphs_with_data.last().expect("At least one glyph");
+    let max_width = (last_glyph_position.x as usize) + last_glyph_position.width;
+
+    // println!(
+    //     "width = {max_width}, height = {max_height}, buffer: {}",
+    //     max_width * max_height
+    // );
+
+    let mut bytes = vec![0u8; max_width * max_height];
+    let mut code_points: Vec<(char, usize, usize)> = Vec::with_capacity(glyphs_with_data.len());
+
+    for (position, metrics, data) in glyphs_with_data {
+        // println!(
+        //     "{name} processing glyph = '{}' m.w = {} m.h = {} p.x = {} p.y = {}",
+        //     position.parent, metrics.width, metrics.height, position.x, position.y
+        // );
+
+        for data_y in 0..metrics.height {
+            for data_x in 0..metrics.width {
+                let data_offset = (data_y * metrics.width) + data_x;
+
+                let byte_x = position.x as usize + data_x;
+                let byte_y = position.y as usize + data_y;
+
+                let byte_offset = (byte_y * max_width) + byte_x;
+
+                // println!(
+                //     "{name} {} -> dx = {data_x}, dy = {data_y}, bx = {byte_x} by={byte_y} do = {data_offset}, bo = {byte_offset}, mw = {max_width} mh = {max_height}",
+                //     position.parent
+                // );
+
+                bytes[byte_offset] = data[data_offset];
+            }
+        }
+
+        code_points.push((position.parent, position.x as usize, position.width));
+    }
+
+    let id = id_from_str(&name);
+    let font_size = parsed_args.size;
+    let (space_width, character_padding) = {
+        let mut space_layout = Layout::new(CoordinateSystem::PositiveYDown);
+        space_layout.append(
+            &[&font],
+            &TextStyle::new("H HH", parsed_args.size as f32, 0),
+        );
+        let glyphs = space_layout.glyphs();
+        (
+            (glyphs[2].x - glyphs[1].x) as u8,
+            (glyphs[3].x - (glyphs[2].x + glyphs[2].width as f32)) as u8,
+        )
+    };
+    let count = parsed_args.chars.len();
+    let has_alpha = true;
+
+    let byte_count = bytes.len();
+    let code_point_count = code_points.len();
+    let code_point_tokens = code_points
+        .iter()
+        .map(|(code_point, x, width)| quote! { ( #code_point, #x, #width ) })
+        .collect::<Vec<_>>();
+    let byte_tokens = bytes.iter().map(|b| quote! { #b }).collect::<Vec<_>>();
+
+    println!("{name}: size {max_width}, {max_height} for {count} characters");
+
+    let output = quote! {
+        pub const #name_ident: ::include_image::Font<#code_point_count, #byte_count> = ::include_image::Font {
+            id: #id,
+            font_size: #font_size,
+            space_width: #space_width,
+            character_padding: #character_padding,
+            count: #count,
+            width: #max_width,
+            height: #max_height,
+            has_alpha: #has_alpha,
+            code_points: [#(#code_point_tokens),*],
             pixels: [#(#byte_tokens),*],
         };
     };

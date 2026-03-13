@@ -3,17 +3,18 @@ use alloc::ffi::CString;
 use crate::utils::Size;
 
 #[derive(Copy, Clone)]
-pub struct Font {
+pub struct QmkFont {
     pub line_height: u16,
     pub handle: qmk_sys::painter_font_handle_t,
 }
 
-impl Font {
-    pub fn new(source: &[u8]) -> Font {
+#[allow(dead_code)]
+impl QmkFont {
+    pub fn new(source: &[u8]) -> QmkFont {
         unsafe {
             let handle = qmk_sys::qp_load_font_mem(source.as_ptr() as *const core::ffi::c_void);
             let line_height = (*handle).line_height as u16;
-            Font {
+            QmkFont {
                 line_height,
                 handle,
             }
